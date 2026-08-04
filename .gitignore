@@ -1,0 +1,24 @@
+# deps / build
+node_modules/
+frontend/dist/
+backend/bin/
+*.exe
+*.test
+
+# env / secrets
+.env
+.env.local
+deploy/k8s/secret.yaml
+
+# ide / os
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# logs
+*.log
+coverage/
+
+# architecture render scratch
+images/_build/

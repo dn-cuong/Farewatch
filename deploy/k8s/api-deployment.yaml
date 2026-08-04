@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: farewatch-api
+  namespace: farewatch
+  labels:
+    app: farewatch-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: farewatch-api
+  template:
+    metadata:
+      labels:
+        app: farewatch-api
+    spec:
+      containers:
+        - name: api
+          image: farewatch/api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: farewatch-config
+            - secretRef:
+                name: farewatch-secrets
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: farewatch-api
+  namespace: farewatch
+spec:
+  selector:
+    app: farewatch-api
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080

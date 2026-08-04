@@ -1,0 +1,47 @@
+.wrap {
+  min-height: calc(100vh - 8rem);
+  display: grid;
+  place-items: center;
+  padding: 2rem 0;
+}
+
+.card {
+  width: min(28rem, 100%);
+  background: var(--fw-card);
+  border: 1px solid color-mix(in srgb, var(--fw-border) 50%, transparent);
+  border-radius: 2.5rem 2rem 3rem 2.25rem;
+  box-shadow: var(--fw-shadow-float);
+  padding: 2rem 1.75rem;
+}
+
+.card h1 {
+  font-size: 2rem;
+  margin-bottom: 0.35rem;
+}
+
+.card p {
+  color: var(--fw-muted-foreground);
+  margin-bottom: 1.5rem;
+}
+
+.switch {
+  margin-top: 1.25rem;
+  text-align: center;
+  color: var(--fw-muted-foreground);
+  font-size: var(--fw-text-sm);
+}
+
+.switch button {
+  border: none;
+  background: none;
+  color: var(--fw-primary);
+  font-weight: 800;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.error {
+  margin-top: 0.85rem;
+  color: var(--fw-destructive);
+  font-size: var(--fw-text-sm);
+}

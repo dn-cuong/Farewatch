@@ -1,0 +1,287 @@
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: clamp(2rem, 4vw, 4rem);
+  align-items: center;
+  padding: clamp(2rem, 5vw, 4.5rem) 0 3rem;
+  min-height: calc(100vh - 8rem);
+}
+
+.copy {
+  display: grid;
+  gap: 1.25rem;
+  max-width: 36rem;
+}
+
+.eyebrow {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fw-primary);
+}
+
+.copy h1 {
+  font-size: clamp(2.75rem, 6vw, 4.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+}
+
+.lead {
+  color: var(--fw-muted-foreground);
+  font-size: 1.2rem;
+  line-height: 1.65;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+}
+
+.trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1.25rem;
+  color: var(--fw-muted-foreground);
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.trust span::before {
+  content: "•";
+  color: var(--fw-secondary);
+  margin-right: 0.55rem;
+}
+
+.trust span:first-child::before {
+  content: "";
+  margin: 0;
+}
+
+.stage {
+  position: relative;
+  min-height: 28rem;
+}
+
+.stageGlow {
+  position: absolute;
+  inset: 8% 4% 4% 12%;
+  background: color-mix(in srgb, var(--fw-accent) 55%, white);
+  border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
+  filter: blur(8px);
+  opacity: 0.7;
+}
+
+.cardStack {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 0 1rem 1.5rem;
+}
+
+.fareCard {
+  background: var(--fw-card);
+  border: 1px solid color-mix(in srgb, var(--fw-border) 50%, transparent);
+  box-shadow: var(--fw-shadow-soft);
+  padding: 1.25rem 1.35rem;
+  transition:
+    transform var(--fw-duration) var(--fw-ease),
+    box-shadow var(--fw-duration) var(--fw-ease);
+}
+
+.fareCard:nth-child(1) {
+  border-radius: 2rem 3.5rem 2rem 2.5rem;
+  transform: rotate(-1.5deg);
+}
+
+.fareCard:nth-child(2) {
+  border-radius: 2.5rem 2rem 3rem 2rem;
+  transform: rotate(1.2deg) translateX(1.25rem);
+  background: color-mix(in srgb, var(--fw-muted) 40%, white);
+}
+
+.fareCard:nth-child(3) {
+  border-radius: 3rem 2.25rem 2rem 3.5rem;
+  transform: rotate(-0.6deg) translateX(0.4rem);
+}
+
+.fareCard:hover {
+  transform: translateY(-4px) rotate(0deg);
+  box-shadow: var(--fw-shadow-lift);
+}
+
+.route {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.55rem;
+}
+
+.codes {
+  font-family: var(--fw-font-display);
+  font-size: 1.65rem;
+  font-weight: 700;
+}
+
+.price {
+  font-family: var(--fw-font-display);
+  font-size: 1.55rem;
+  font-weight: 700;
+  color: var(--fw-primary);
+}
+
+.meta {
+  color: var(--fw-muted-foreground);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.drop {
+  display: inline-flex;
+  margin-top: 0.7rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fw-primary) 12%, transparent);
+  color: var(--fw-primary);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.noteCard {
+  margin-top: 0.5rem;
+  padding: 1.1rem 1.25rem;
+  background: color-mix(in srgb, var(--fw-secondary) 12%, white);
+  border: 1px solid color-mix(in srgb, var(--fw-secondary) 25%, var(--fw-border));
+  border-radius: 1.75rem 2.5rem 1.75rem 2.25rem;
+  box-shadow: var(--fw-shadow-float);
+}
+
+.noteCard strong {
+  display: block;
+  font-family: var(--fw-font-display);
+  font-size: 1.2rem;
+  margin-bottom: 0.25rem;
+}
+
+.noteCard p {
+  color: var(--fw-accent-foreground);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.section {
+  padding: 3.5rem 0 1rem;
+}
+
+.section h2 {
+  font-size: clamp(1.9rem, 3.5vw, 2.6rem);
+  margin-bottom: 0.5rem;
+}
+
+.sectionLead {
+  color: var(--fw-muted-foreground);
+  max-width: 34rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+.step {
+  background: var(--fw-card);
+  border: 1px solid color-mix(in srgb, var(--fw-border) 45%, transparent);
+  box-shadow: var(--fw-shadow-soft);
+  padding: 1.4rem 1.35rem;
+}
+
+.step:nth-child(1) { border-radius: 2rem 3rem 2rem 2.5rem; }
+.step:nth-child(2) { border-radius: 2.5rem 2rem 3rem 2rem; }
+.step:nth-child(3) { border-radius: 2rem 2.5rem 2rem 3.5rem; }
+
+.stepNum {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
+  background: color-mix(in srgb, var(--fw-primary) 14%, transparent);
+  color: var(--fw-primary);
+  display: grid;
+  place-items: center;
+  font-family: var(--fw-font-display);
+  font-weight: 700;
+  margin-bottom: 0.9rem;
+}
+
+.step h3 {
+  font-size: 1.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.step p {
+  color: var(--fw-muted-foreground);
+  line-height: 1.55;
+  font-size: 0.98rem;
+}
+
+.band {
+  margin: 3.5rem 0 1rem;
+  padding: 2.5rem clamp(1.25rem, 3vw, 2.5rem);
+  background: color-mix(in srgb, var(--fw-muted) 55%, white);
+  border: 1px solid color-mix(in srgb, var(--fw-border) 40%, transparent);
+  border-radius: 2.5rem 3.5rem 2.5rem 4rem;
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.band h2 {
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  margin-bottom: 0.5rem;
+}
+
+.band p {
+  color: var(--fw-muted-foreground);
+  line-height: 1.6;
+  max-width: 34rem;
+}
+
+.footer {
+  padding: 3rem 0 1rem;
+  color: var(--fw-muted-foreground);
+  font-size: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-top: 1px solid color-mix(in srgb, var(--fw-border) 40%, transparent);
+  margin-top: 2rem;
+}
+
+@media (max-width: 960px) {
+  .hero {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding-top: 1.5rem;
+  }
+
+  .cardStack {
+    padding-left: 0;
+  }
+
+  .fareCard:nth-child(2) {
+    transform: none;
+  }
+
+  .steps,
+  .band {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,113 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: farewatch
+      POSTGRES_PASSWORD: farewatch
+      POSTGRES_DB: farewatch
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U farewatch -d farewatch"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Local SMTP catcher for alert demos without Gmail:
+  #   docker-compose --profile dev-mail up -d
+  mailpit:
+    image: axllent/mailpit:latest
+    profiles: ["dev-mail"]
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  api:
+    build:
+      context: ./backend
+    env_file:
+      - .env
+    environment:
+      PORT: "8080"
+      DATABASE_URL: postgres://farewatch:farewatch@postgres:5432/farewatch?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      FRONTEND_ORIGIN: http://localhost:3000
+      WORKER_COUNT: "8"
+      RATE_LIMIT_PER_SEC: "20"
+      CACHE_TTL_SECONDS: "900"
+      # Prefer explicit interpolation so empty host exports cannot blank secrets from env_file.
+      IGNAV_API_KEY: ${IGNAV_API_KEY}
+      JWT_SECRET: ${JWT_SECRET:-farewatch-dev-secret-change-me}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  scanner:
+    build:
+      context: ./backend
+    entrypoint: ["/app/scanner"]
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgres://farewatch:farewatch@postgres:5432/farewatch?sslmode=disable
+      REDIS_URL: redis://redis:6379/0
+      IGNAV_API_KEY: ${IGNAV_API_KEY}
+      JWT_SECRET: ${JWT_SECRET:-farewatch-dev-secret-change-me}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      WORKER_COUNT: "8"
+      RATE_LIMIT_PER_SEC: "20"
+      CACHE_TTL_SECONDS: "900"
+    depends_on:
+      api:
+        condition: service_healthy
+    profiles:
+      - tools
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8080/graphql
+        VITE_FIREBASE_API_KEY: ${VITE_FIREBASE_API_KEY:-}
+        VITE_FIREBASE_AUTH_DOMAIN: ${VITE_FIREBASE_AUTH_DOMAIN:-}
+        VITE_FIREBASE_PROJECT_ID: ${VITE_FIREBASE_PROJECT_ID:-}
+        VITE_FIREBASE_APP_ID: ${VITE_FIREBASE_APP_ID:-}
+    ports:
+      - "3000:80"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:

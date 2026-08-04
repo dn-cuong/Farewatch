@@ -1,0 +1,60 @@
+.root {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.12em;
+  font-family: var(--fw-font-body);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--fw-foreground);
+}
+
+.prefix {
+  color: var(--fw-muted-foreground);
+  font-size: 0.72em;
+  font-weight: 700;
+  margin-right: 0.08em;
+}
+
+.digits {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.digit {
+  position: relative;
+  width: 0.72em;
+  height: 1.2em;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--fw-muted) 80%, white);
+  border: 1px solid color-mix(in srgb, var(--fw-border) 70%, transparent);
+  border-radius: 0.45rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.digit::after {
+  content: "";
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 50%;
+  height: 1px;
+  background: color-mix(in srgb, var(--fw-border) 65%, transparent);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  transform: translateY(calc(var(--offset) * -1.2em));
+  transition: transform var(--fw-flip-ms) var(--fw-ease);
+}
+
+.stack span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.2em;
+  width: 100%;
+}
