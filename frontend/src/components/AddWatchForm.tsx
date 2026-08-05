@@ -25,9 +25,9 @@ export function AddWatchForm({ onCreated }: Props) {
       })
       .catch(() => {
         setAirports([
-          { code: 'JFK', city: 'New York' },
-          { code: 'LAX', city: 'Los Angeles' },
-          { code: 'SFO', city: 'San Francisco' },
+          { code: 'JFK', city: 'New York', country: 'United States' },
+          { code: 'LAX', city: 'Los Angeles', country: 'United States' },
+          { code: 'SFO', city: 'San Francisco', country: 'United States' },
         ]);
       });
   }, []);

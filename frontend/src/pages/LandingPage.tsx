@@ -47,7 +47,7 @@ export function LandingPage() {
               <div className="brand-tag">Quiet fare tracking</div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.65rem', paddingRight: '0.35rem' }}>
+          <div className="topbar-actions">
             {user ? (
               <Link className="btn btn-primary" to="/dashboard">
                 Dashboard
@@ -57,7 +57,7 @@ export function LandingPage() {
                 <Link className="btn btn-ghost" to="/login">
                   Sign in
                 </Link>
-                <Link className="btn btn-primary" to="/register">
+                <Link className="btn btn-primary" to="/search">
                   Get started
                 </Link>
               </>
@@ -74,11 +74,11 @@ export function LandingPage() {
               a fare softens to your number. No noise. No dashboards you have to babysit.
             </p>
             <div className={styles.cta}>
-              <Link className="btn btn-primary" to={user ? '/dashboard' : '/register'}>
-                {user ? 'Open my watches' : 'Watch a route free'}
+              <Link className="btn btn-primary" to={user ? '/search' : '/search'}>
+                {user ? 'Search flights' : 'Search a route'}
               </Link>
-              <Link className="btn btn-outline" to="/login">
-                I already have an account
+              <Link className="btn btn-outline" to={user ? '/dashboard' : '/login'}>
+                {user ? 'Open my watches' : 'I already have an account'}
               </Link>
             </div>
             <div className={styles.trust}>
@@ -126,18 +126,18 @@ export function LandingPage() {
           <div className={styles.steps}>
             <article className={styles.step}>
               <div className={styles.stepNum}>1</div>
-              <h3>Tell us the trip</h3>
-              <p>Pick where you’re flying, when, and the price that would make you book.</p>
+              <h3>Search the trip</h3>
+              <p>See the real options — airline, flight number, schedule, and layovers.</p>
             </article>
             <article className={styles.step}>
               <div className={styles.stepNum}>2</div>
-              <h3>We keep watch</h3>
-              <p>FareWatch checks your routes in the background while you get on with your day.</p>
+              <h3>Pick the one you want</h3>
+              <p>Choose the itinerary worth watching, then create an account to start tracking.</p>
             </article>
             <article className={styles.step}>
               <div className={styles.stepNum}>3</div>
-              <h3>You get the email</h3>
-              <p>When the fare crosses your line, a short note lands in your inbox — ready to act.</p>
+              <h3>Get the email</h3>
+              <p>When that fare softens to your number, a short note lands in your inbox.</p>
             </article>
           </div>
         </section>
@@ -150,8 +150,8 @@ export function LandingPage() {
               We’ll wait for the sky to settle — then nudge you.
             </p>
           </div>
-          <Link className="btn btn-primary" to={user ? '/dashboard' : '/register'}>
-            {user ? 'Go to dashboard' : 'Create free account'}
+          <Link className="btn btn-primary" to="/search">
+            {user ? 'Search another flight' : 'Search a route'}
           </Link>
         </section>
 

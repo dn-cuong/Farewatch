@@ -3,74 +3,224 @@
   gap: var(--fw-space-4);
 }
 
-.summary {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--fw-space-3);
+.tickerHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+  flex-wrap: wrap;
 }
 
-.stat {
-  padding: 0.85rem 1rem;
+.symbol {
+  font-size: var(--fw-text-xs);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fw-muted-foreground);
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.85rem;
+  margin-top: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.bigPrice {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+}
+
+.delta {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-height: 2.4rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--fw-radius-pill);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.delta small {
+  font-size: 0.72rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.toneDown {
+  color: var(--fw-down);
+  background: color-mix(in srgb, var(--fw-primary) 12%, transparent);
+}
+
+.toneUp {
+  color: var(--fw-up);
+  background: color-mix(in srgb, var(--fw-destructive) 12%, transparent);
+}
+
+.toneFlat {
+  color: var(--fw-flat);
+  background: var(--fw-muted);
+}
+
+.hoverHint {
+  margin: 0.45rem 0 0;
+  color: var(--fw-muted-foreground);
+  font-size: 0.88rem;
+}
+
+.ranges {
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.25rem;
+  border-radius: var(--fw-radius-pill);
+  border: 1px solid var(--fw-border);
+  background: color-mix(in srgb, var(--fw-muted) 70%, white);
+}
+
+.ranges button {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--fw-muted-foreground);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  min-width: 2.6rem;
+  min-height: 2rem;
+  padding: 0 0.7rem;
+  border-radius: var(--fw-radius-pill);
+  cursor: pointer;
+}
+
+.rangeActive {
+  background: var(--fw-primary) !important;
+  color: var(--fw-primary-foreground) !important;
+  box-shadow: var(--fw-shadow-btn);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.metric {
+  padding: 0.75rem 0.9rem;
   background: color-mix(in srgb, var(--fw-muted) 55%, white);
   border: 1px solid color-mix(in srgb, var(--fw-border) 40%, transparent);
-  border-radius: 1.35rem;
+  border-radius: 1.25rem;
 }
 
-.stat:nth-child(1) { border-radius: 1.75rem 1.25rem 1.5rem 2rem; }
-.stat:nth-child(2) { border-radius: 1.25rem 2rem 1.75rem 1.35rem; }
-.stat:nth-child(3) { border-radius: 2rem 1.35rem 1.25rem 1.75rem; }
-.stat:nth-child(4) { border-radius: 1.35rem 1.75rem 2rem 1.25rem; }
+.metric:nth-child(1) { border-radius: 1.6rem 1.1rem 1.35rem 1.8rem; }
+.metric:nth-child(2) { border-radius: 1.1rem 1.8rem 1.5rem 1.2rem; }
+.metric:nth-child(3) { border-radius: 1.7rem 1.2rem 1.1rem 1.5rem; }
+.metric:nth-child(4) { border-radius: 1.2rem 1.55rem 1.8rem 1.15rem; }
 
-.stat label {
+.metric label {
   display: block;
   font-size: var(--fw-text-xs);
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--fw-muted-foreground);
-  margin-bottom: 0.3rem;
+  margin-bottom: 0.25rem;
 }
 
-.stat strong {
+.metric strong {
   font-family: var(--fw-font-display);
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.alertTone {
+  color: var(--fw-secondary);
+}
+
+.chartShell {
+  position: relative;
 }
 
 .chart {
   width: 100%;
   height: auto;
   display: block;
+  touch-action: none;
+  cursor: crosshair;
   background: color-mix(in srgb, var(--fw-muted) 35%, white);
   border: 1px solid color-mix(in srgb, var(--fw-border) 45%, transparent);
   border-radius: 1.75rem 2.5rem 1.75rem 2.25rem;
 }
 
-.legend {
+.tooltip {
+  position: absolute;
+  top: 0.85rem;
+  transform: translateX(-50%);
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.45rem 0.7rem;
+  border-radius: 0.85rem;
+  background: rgba(253, 252, 248, 0.94);
+  border: 1px solid var(--fw-border);
+  box-shadow: var(--fw-shadow-soft);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.tooltip strong {
+  font-family: var(--fw-font-display);
+  font-size: 1rem;
+}
+
+.tooltip span {
+  color: var(--fw-muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.flightMeta {
+  margin: 0;
+  color: var(--fw-muted-foreground);
+  font-size: 0.88rem;
+}
+
+.actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--fw-space-4);
-  font-size: var(--fw-text-xs);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.removeBtn {
+  color: var(--fw-destructive) !important;
+}
+
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--fw-destructive) 35%, var(--fw-border));
+  background: color-mix(in srgb, var(--fw-destructive) 8%, white);
+}
+
+.confirm p {
+  margin: 0;
+  flex: 1 1 12rem;
+  font-size: 0.9rem;
+  color: var(--fw-foreground);
+}
+
+.emailNote {
+  margin: 0;
   color: var(--fw-muted-foreground);
-}
-
-.swatch {
-  display: inline-block;
-  width: 1.1rem;
-  height: 3px;
-  margin-right: 0.45rem;
-  vertical-align: middle;
-  border-radius: 999px;
-  background: var(--fw-primary);
-}
-
-.swatchThreshold {
-  background: var(--fw-secondary);
-  background-image: none;
+  font-size: 0.85rem;
+  line-height: 1.45;
 }
 
 .emptyPick {
@@ -79,4 +229,67 @@
 
 .panelOrganic {
   border-radius: 2.5rem 2rem 3.5rem 2rem;
+}
+
+@media (max-width: 720px) {
+  .metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .actions :global(.btn) {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .panelOrganic {
+    border-radius: 1.5rem 1.75rem 2rem 1.5rem;
+  }
+
+  .tickerHead {
+    display: grid;
+  }
+
+  .ranges {
+    width: 100%;
+  }
+
+  .ranges button {
+    flex: 1;
+  }
+
+  .bigPrice {
+    font-size: 2rem;
+  }
+
+  .delta {
+    min-height: 2.2rem;
+    padding-inline: 0.65rem;
+  }
+
+  .metrics {
+    gap: 0.5rem;
+  }
+
+  .metric {
+    padding: 0.7rem 0.75rem;
+    border-radius: 1rem !important;
+  }
+
+  .metric strong {
+    font-size: 1.05rem;
+  }
+
+  .chart {
+    border-radius: 1.25rem;
+  }
+
+  .flightMeta,
+  .emailNote {
+    overflow-wrap: anywhere;
+  }
+
+  .confirm :global(.btn) {
+    width: 100%;
+  }
 }

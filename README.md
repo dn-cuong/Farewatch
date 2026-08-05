@@ -1,32 +1,33 @@
 # FareWatch
 
-Web app for flight fare tracking. Users search a route, review live offers from multiple airlines, pick the itineraries they care about, and get emailed when those fares drop under a threshold.
+Web app for flight fare tracking. Users search a route, review offers from **30+ global airline pricing adapters** and search aggregators, pick itineraries to watch, and get emailed when those fares drop.
 
 | Piece | Role |
 |-------|------|
 | React web app | Search routes, pick offers to watch, board + history + alerts |
-| GraphQL API (Go) | Auth, live search, watches, scan trigger |
-| Ignav | External live fare API (multi-airline itineraries) |
-| Scanner CronJob | Re-polls only watched routes on a schedule |
+| GraphQL API (Go) | Auth, multi-provider search, watches, scan trigger |
+| 30+ airline adapters | Per-carrier HTTP pricing clients across North America, Europe, Asia-Pacific, the Middle East, and Africa |
+| Search APIs | Ignav, Travelpayouts, Sky Scrapper (RapidAPI), and Google Flights probe |
+| Scanner CronJob | Rate-limited goroutine pool re-polls watched routes |
 | Redis | Short-TTL fare cache (cut redundant upstream calls) |
 | PostgreSQL | Users, watches, offer history, alerts |
-| SMTP | Drop alerts to the account email |
+| SMTP | Drop alerts to an account or email-only watch |
 
-**Targets:** concurrent polling without stampeding airline APIs, measurable Redis cache hit rate across scans, email delivery recorded after a detected drop. Local stack is Docker Compose; cloud shape is EKS Deployments + CronJob, RDS, ElastiCache.
+**Targets:** concurrently poll 10+ airline/search providers without stampeding upstreams, normalize + dedupe quotes, measure Redis cache hit rate, email on detected drops. Local stack is Docker Compose; cloud shape is EKS Deployments + CronJob, RDS, ElastiCache.
 
 ---
 
 ## Problem
 
-Fare pages change constantly. Checking ten airlines by hand does not scale, and naive concurrent scrapers get rate-limited or duplicate the same request across workers.
+Fare pages change constantly. Checking ten airlines by hand does not scale, and naive concurrent scrapers get rate-limited or duplicate the same itinerary across sources.
 
 FareWatch separates **discovery** from **tracking**:
 
 1. User searches origin → destination + date
-2. GraphQL calls the live fare API and returns airline offers for that route
+2. GraphQL concurrently polls airline + search providers, **normalizes** to a common `Offer`, then **dedupes** by flight fingerprint (keep cheapest)
 3. User selects which offers to watch and sets a target price
-4. A scanner CronJob re-polls only active watches through a rate-limited worker pool
-5. Recent quotes hit Redis when still fresh; every observation lands in Postgres
+4. A scanner CronJob re-polls only active watches through a **rate-limited worker pool**
+5. Recent airline quotes hit Redis when still fresh; every observation lands in Postgres
 6. Crossing a watch threshold sends SMTP mail and records delivery latency
 
 This is a systems project (workers, cache, GraphQL, scheduling). It is not a booking OTA and does not issue tickets.
@@ -38,35 +39,39 @@ This is a systems project (workers, cache, GraphQL, scheduling). It is not a boo
 ### User flow
 
 1. **Search** — Browser sends route criteria to GraphQL (`searchFares`).
-2. **Live lookup** — API queries Ignav for multi-airline itineraries (price, flight number, schedule, aircraft, stops).
-3. **Choose** — UI shows the offer list; user picks one or more flights/airlines to follow.
-4. **Watch** — `createWatch` stores the selection (user-owned) in Postgres with a threshold.
-5. **Track** — Scanner CronJob / `runScan` re-polls watched routes only; workers share a token bucket (`RATE_LIMIT_PER_SEC`).
-6. **Alert** — On a drop under threshold, SMTP fires; dashboard shows `myWatches`, fare history, and `myAlerts`.
+2. **Multi-API poll** — API fans out (with bounded concurrency) to 30+ airline adapters + every configured search API.
+3. **Normalize / dedupe** — Responses map to one `Offer` shape; identical flights from multiple sources collapse to the cheapest.
+4. **Choose** — UI shows the offer list; user picks flights to follow.
+5. **Watch** — Save to a dashboard account, or create an email-only watch.
+6. **Track** — Scanner CronJob / `runScan` builds `routes × providers` jobs; workers share `RATE_LIMIT_PER_SEC`.
+7. **Alert** — On a drop under threshold, SMTP fires; dashboard shows watches, history, alerts.
 
 ### Data path
 
 | Hop | What happens |
 |-----|----------------|
 | Browser → GraphQL | HTTPS `/graphql`, JWT auth |
-| GraphQL → Ignav | Live search for the requested route |
+| GraphQL → providers | Concurrent airline + search API fetches |
 | GraphQL → Postgres | Users, watches, immutable fare rows, alerts |
-| GraphQL / Scanner → Redis | Hot fare cache with TTL |
-| Scanner → Ignav | Scheduled re-poll of watched routes |
+| GraphQL / Scanner → Redis | Hot fare cache with TTL (per airline provider) |
+| Scanner → worker pool | Rate-limited goroutines poll every provider for watched routes |
 | Scanner → SMTP | Email when a watched fare drops |
 
 ### Why Redis + Postgres
 
 | Store | Role |
 |-------|------|
-| **Redis** | Hot fare cache with TTL — search and scanner skip duplicate upstream calls |
+| **Redis** | Hot fare cache with TTL — airline adapters skip duplicate upstream calls |
 | **PostgreSQL** | System of record for users, selected watches, fare observations, alerts |
 
-Replicas stay consistent because caching and history depend on shared stores, not process-local memory.
+### Fare providers
 
-### Live fares
+| Kind | Providers |
+|------|-----------|
+| **Airline adapters** | 32 major carriers including Delta, United, Air France, Lufthansa, Emirates, Qatar, Singapore, Cathay, Qantas, ANA, JAL, Korean Air, Turkish, Air India, Ethiopian, and others. Each tries that carrier's public search surface; failures are explicitly tagged `simulator:*` |
+| **Search APIs** | Ignav, free Travelpayouts cached fares, free-tier Sky Scrapper/RapidAPI, Google Flights probe, and legacy Amadeus when configured |
 
-Amadeus Self-Service shut down in July 2026. FareWatch uses **Ignav** as the external fare source (`source: "ignav"`). Set `IGNAV_API_KEY` in `.env`. Without a key, offline airline simulator adapters are available for local development only.
+Sources are tagged (`airline:DL`, `search:ignav`, …) so you can see which adapter won after dedupe.
 
 ---
 
@@ -76,7 +81,7 @@ Amadeus Self-Service shut down in July 2026. FareWatch uses **Ignav** as the ext
 |------|------|
 | `backend/cmd/api` | GraphQL HTTP server |
 | `backend/cmd/scanner` | One-shot scanner (CronJob entrypoint) |
-| `backend/internal/airlines` | Ignav client + airline provider adapters |
+| `backend/internal/airlines` | 32 global airline adapters + Ignav/Google/Travelpayouts/Sky Scrapper + normalize/dedupe |
 | `backend/internal/worker` | Rate-limited goroutine pool |
 | `backend/internal/cache` | Redis fare cache |
 | `backend/internal/store` | Postgres migrations + queries |
@@ -95,8 +100,9 @@ Amadeus Self-Service shut down in July 2026. FareWatch uses **Ignav** as the ext
 |----|---------|
 | `register` / `login` | Email+password → JWT |
 | `loginWithFirebase` | Optional Google ID token → JWT |
-| `searchFares` | Live route search → multi-airline offer list |
-| `createWatch` | Persist a user-selected offer + threshold |
+| `searchFares` | Live route search → multi-airline offer list (public) |
+| `createWatch` | Persist a user-selected offer + threshold (auth) |
+| `createEmailWatch` | Create an email-only alert without an account |
 | `myWatches` | Dashboard rows + `latestFare` |
 | `fares(routeId)` | Price history for charts |
 | `runScan` | On-demand re-poll of watched routes |
@@ -111,7 +117,7 @@ Needs Docker Desktop. Copy env and start:
 
 ```bash
 cp .env.example .env
-# set IGNAV_API_KEY=... from https://ignav.com
+# Add one or more free source keys (Ignav, Travelpayouts, RapidAPI)
 make up
 ```
 
@@ -166,7 +172,9 @@ kubectl apply -f deploy/k8s/
 
 | Variable | Purpose |
 |----------|---------|
-| `IGNAV_API_KEY` | Live fare API (required for market data) |
+| `IGNAV_API_KEY` | Ignav live fare source |
+| `TRAVELPAYOUTS_TOKEN` | Free cached fare source |
+| `RAPIDAPI_KEY` | Sky Scrapper free-tier structured itinerary source |
 | `DATABASE_URL` | Postgres |
 | `REDIS_URL` | Redis |
 | `JWT_SECRET` | API token signing |

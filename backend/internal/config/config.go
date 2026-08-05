@@ -25,6 +25,8 @@ type Config struct {
 	AmadeusClientSecret string
 	AmadeusBaseURL      string
 	IgnavAPIKey         string
+	TravelpayoutsToken  string
+	RapidAPIKey         string
 	FirebaseProjectID   string
 }
 
@@ -48,6 +50,8 @@ func Load() Config {
 		AmadeusClientSecret: getEnv("AMADEUS_CLIENT_SECRET", ""),
 		AmadeusBaseURL:      getEnv("AMADEUS_BASE_URL", "https://test.api.amadeus.com"),
 		IgnavAPIKey:         getEnv("IGNAV_API_KEY", ""),
+		TravelpayoutsToken:  getEnv("TRAVELPAYOUTS_TOKEN", ""),
+		RapidAPIKey:         getEnv("RAPIDAPI_KEY", ""),
 		FirebaseProjectID:   getEnv("FIREBASE_PROJECT_ID", ""),
 	}
 }

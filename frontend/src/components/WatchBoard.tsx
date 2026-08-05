@@ -1,6 +1,6 @@
 import type { Watch } from '../api';
-import { FlipNumber } from './FlipNumber';
 import { EmptyState, ErrorState, LoadingState } from './StatusStates';
+import { formatPrice } from '../utils/price';
 import styles from './WatchBoard.module.css';
 
 type Props = {
@@ -89,7 +89,7 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
         </div>
         <EmptyState
           title="No email watches yet"
-          message="Add a route — we’ll email you at your account address when the fare drops."
+          message="Search a route, pick a flight, and we’ll email you when that fare drops."
         />
       </div>
     );
@@ -119,6 +119,7 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
             {watches.map((w) => {
               const f = w.latestFare;
               const alerted = f && w.targetPrice != null ? f.price <= w.targetPrice : false;
+              const muted = !w.notifyOnDrop;
               return (
                 <tr
                   key={w.id}
@@ -133,13 +134,17 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
                     </div>
                     <div className={styles.cities}>
                       {f ? `${f.originCity} — ${f.destinationCity}` : w.route?.departDate}
-                      {w.targetPrice != null ? ` · alert ≤ $${Math.round(w.targetPrice)}` : ''}
+                      {w.targetPrice != null ? ` · alert ≤ ${formatPrice(w.targetPrice, f?.currency ?? 'USD')}` : ''}
                     </div>
                   </td>
                   <td>
-                    <div className={styles.flight}>{f?.flightNumber ?? 'Scanning…'}</div>
+                    <div className={styles.flight}>{f?.flightNumber ?? w.flightNumber ?? 'Scanning…'}</div>
                     <div className={styles.meta}>
-                      {f ? `${f.airline} · ${f.aircraft} · ${f.stops === 0 ? 'Nonstop' : `${f.stops} stop`}` : '—'}
+                      {f
+                        ? `${f.airline} · ${f.aircraft} · ${f.stops === 0 ? 'Nonstop' : `${f.stops} stop`}`
+                        : w.airlineCode
+                          ? `${w.airlineCode}${w.targetPrice != null ? ` · alert ≤ ${formatPrice(w.targetPrice)}` : ''}`
+                          : '—'}
                     </div>
                   </td>
                   <td>
@@ -149,7 +154,7 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
                     </div>
                   </td>
                   <td>
-                    {f ? <FlipNumber className={styles.price} value={f.price} /> : <span className={styles.meta}>…</span>}
+                    {f ? <span className={styles.price}>{formatPrice(f.price, f.currency)}</span> : <span className={styles.meta}>…</span>}
                   </td>
                   <td>
                     <span className={`${styles.change} ${changeClass(w.change24h)}`}>
@@ -157,16 +162,15 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
                     </span>
                   </td>
                   <td>
-                    <span className={`${styles.badge} ${alerted ? styles.badgeAlert : ''}`}>
-                      {alerted ? 'Alert ready' : 'Watching'}
+                    <span className={`${styles.badge} ${alerted ? styles.badgeAlert : ''} ${muted ? styles.badgeMuted : ''}`}>
+                      {muted ? 'Email muted' : alerted ? 'Alert ready' : 'Watching'}
                     </span>
                   </td>
                   <td>
                     {onRemove && (
                       <button
-                        className="btn btn-ghost"
+                        className={`btn btn-ghost ${styles.remove}`}
                         type="button"
-                        style={{ minHeight: '2.2rem', padding: '0 0.85rem' }}
                         onClick={(e) => {
                           e.stopPropagation();
                           onRemove(w.id);
@@ -187,6 +191,7 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
         {watches.map((w) => {
           const f = w.latestFare;
           const alerted = f && w.targetPrice != null ? f.price <= w.targetPrice : false;
+          const muted = !w.notifyOnDrop;
           return (
             <div
               key={w.id}
@@ -207,7 +212,7 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
                     {f?.flightNumber ?? 'Scanning…'} · {f?.airline ?? '—'}
                   </div>
                 </div>
-                {f ? <FlipNumber className={styles.price} value={f.price} /> : null}
+                  {f ? <span className={styles.price}>{formatPrice(f.price, f.currency)}</span> : null}
               </div>
               <div className={styles.cardBottom}>
                 <div>
@@ -216,9 +221,23 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
                     {formatChange(w.change24h)}
                   </span>
                 </div>
-                <span className={`${styles.badge} ${alerted ? styles.badgeAlert : ''}`}>
-                  {alerted ? 'Alert ready' : 'Watching'}
-                </span>
+                <div className={styles.cardActions}>
+                  <span className={`${styles.badge} ${alerted ? styles.badgeAlert : ''} ${muted ? styles.badgeMuted : ''}`}>
+                    {muted ? 'Email muted' : alerted ? 'Alert ready' : 'Watching'}
+                  </span>
+                  {onRemove && (
+                    <button
+                      className={`btn btn-ghost ${styles.remove}`}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemove(w.id);
+                      }}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           );

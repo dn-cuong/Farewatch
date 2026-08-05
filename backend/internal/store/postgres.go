@@ -99,6 +99,8 @@ func (s *Store) Migrate(ctx context.Context) error {
 		`ALTER TABLE fares ADD COLUMN IF NOT EXISTS aircraft TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE fares ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE watches ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE CASCADE`,
+		`ALTER TABLE watches ADD COLUMN IF NOT EXISTS airline_code TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE watches ADD COLUMN IF NOT EXISTS flight_number TEXT NOT NULL DEFAULT ''`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS firebase_uid TEXT`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_firebase_uid ON users(firebase_uid) WHERE firebase_uid IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_fares_route_observed ON fares(route_id, observed_at DESC)`,
@@ -388,6 +390,15 @@ func (s *Store) LatestFareByAirline(ctx context.Context, routeID, airlineCode st
 	`, routeID, airlineCode))
 }
 
+func (s *Store) LatestFareForSelection(ctx context.Context, routeID, airlineCode, flightNumber string) (*models.Fare, error) {
+	return scanFare(s.pool.QueryRow(ctx, fareSelect+`
+		WHERE route_id = $1
+		  AND ($2 = '' OR airline_code = $2)
+		  AND ($3 = '' OR flight_number = $3)
+		ORDER BY observed_at DESC LIMIT 1
+	`, routeID, airlineCode, flightNumber))
+}
+
 func (s *Store) LatestFareForRoute(ctx context.Context, routeID string) (*models.Fare, error) {
 	return scanFare(s.pool.QueryRow(ctx, fareSelect+`
 		WHERE route_id = $1 ORDER BY price ASC, observed_at DESC LIMIT 1
@@ -401,18 +412,20 @@ func (s *Store) Fare24hAgo(ctx context.Context, routeID string) (*models.Fare, e
 	`, routeID))
 }
 
-func (s *Store) CreateWatch(ctx context.Context, userID, email, routeID string, targetPrice *float64, dropPercent float64) (*models.Watch, error) {
+func (s *Store) CreateWatch(ctx context.Context, userID, email, routeID, airlineCode, flightNumber string, targetPrice *float64, dropPercent float64) (*models.Watch, error) {
 	if dropPercent <= 0 {
 		dropPercent = 5
 	}
 	id := uuid.NewString()
 	var w models.Watch
 	err := s.pool.QueryRow(ctx, `
-		INSERT INTO watches (id, user_id, email, route_id, target_price, drop_percent)
-		VALUES ($1, $2, LOWER($3), $4, $5, $6)
-		RETURNING id, COALESCE(user_id::text, ''), email, route_id, target_price, notify_on_drop, drop_percent::float8, active, created_at
-	`, id, nullUUID(userID), email, routeID, targetPrice, dropPercent).Scan(
-		&w.ID, &w.UserID, &w.Email, &w.RouteID, &w.TargetPrice, &w.NotifyOnDrop, &w.DropPercent, &w.Active, &w.CreatedAt,
+		INSERT INTO watches (id, user_id, email, route_id, airline_code, flight_number, target_price, drop_percent)
+		VALUES ($1, $2, LOWER($3), $4, UPPER($5), $6, $7, $8)
+		RETURNING id, COALESCE(user_id::text, ''), email, route_id, COALESCE(airline_code, ''), COALESCE(flight_number, ''),
+		          target_price, notify_on_drop, drop_percent::float8, active, created_at
+	`, id, nullUUID(userID), email, routeID, airlineCode, flightNumber, targetPrice, dropPercent).Scan(
+		&w.ID, &w.UserID, &w.Email, &w.RouteID, &w.AirlineCode, &w.FlightNumber,
+		&w.TargetPrice, &w.NotifyOnDrop, &w.DropPercent, &w.Active, &w.CreatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -429,7 +442,8 @@ func nullUUID(id string) any {
 
 func (s *Store) ListWatchesByUser(ctx context.Context, userID string) ([]models.Watch, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT w.id, COALESCE(w.user_id::text, ''), w.email, w.route_id, w.target_price, w.notify_on_drop, w.drop_percent::float8, w.active, w.created_at,
+		SELECT w.id, COALESCE(w.user_id::text, ''), w.email, w.route_id, COALESCE(w.airline_code, ''), COALESCE(w.flight_number, ''),
+		       w.target_price, w.notify_on_drop, w.drop_percent::float8, w.active, w.created_at,
 		       r.id, r.origin, r.destination, r.depart_date::text, NULLIF(r.return_date::text, ''), r.cabin, r.active, r.created_at
 		FROM watches w
 		JOIN routes r ON r.id = w.route_id
@@ -446,13 +460,14 @@ func (s *Store) ListWatchesByUser(ctx context.Context, userID string) ([]models.
 		var w models.Watch
 		var r models.Route
 		if err := rows.Scan(
-			&w.ID, &w.UserID, &w.Email, &w.RouteID, &w.TargetPrice, &w.NotifyOnDrop, &w.DropPercent, &w.Active, &w.CreatedAt,
+			&w.ID, &w.UserID, &w.Email, &w.RouteID, &w.AirlineCode, &w.FlightNumber,
+			&w.TargetPrice, &w.NotifyOnDrop, &w.DropPercent, &w.Active, &w.CreatedAt,
 			&r.ID, &r.Origin, &r.Destination, &r.DepartDate, &r.ReturnDate, &r.Cabin, &r.Active, &r.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
 		w.Route = &r
-		if fare, err := s.LatestFareForRoute(ctx, r.ID); err == nil {
+		if fare, err := s.LatestFareForSelection(ctx, r.ID, w.AirlineCode, w.FlightNumber); err == nil {
 			w.LatestFare = fare
 			if prev, err := s.Fare24hAgo(ctx, r.ID); err == nil && prev.Price > 0 {
 				chg := ((fare.Price - prev.Price) / prev.Price) * 100
@@ -468,7 +483,8 @@ func (s *Store) ListWatchesByUser(ctx context.Context, userID string) ([]models.
 
 func (s *Store) ActiveWatchesForRoute(ctx context.Context, routeID string) ([]models.Watch, error) {
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, COALESCE(user_id::text, ''), email, route_id, target_price, notify_on_drop, drop_percent::float8, active, created_at
+		SELECT id, COALESCE(user_id::text, ''), email, route_id, COALESCE(airline_code, ''), COALESCE(flight_number, ''),
+		       target_price, notify_on_drop, drop_percent::float8, active, created_at
 		FROM watches WHERE route_id = $1 AND active = TRUE
 	`, routeID)
 	if err != nil {
@@ -478,7 +494,8 @@ func (s *Store) ActiveWatchesForRoute(ctx context.Context, routeID string) ([]mo
 	var out []models.Watch
 	for rows.Next() {
 		var w models.Watch
-		if err := rows.Scan(&w.ID, &w.UserID, &w.Email, &w.RouteID, &w.TargetPrice, &w.NotifyOnDrop, &w.DropPercent, &w.Active, &w.CreatedAt); err != nil {
+		if err := rows.Scan(&w.ID, &w.UserID, &w.Email, &w.RouteID, &w.AirlineCode, &w.FlightNumber,
+			&w.TargetPrice, &w.NotifyOnDrop, &w.DropPercent, &w.Active, &w.CreatedAt); err != nil {
 			return nil, err
 		}
 		out = append(out, w)
@@ -497,6 +514,28 @@ func (s *Store) DeactivateWatch(ctx context.Context, userID, watchID string) err
 		return pgx.ErrNoRows
 	}
 	return nil
+}
+
+func (s *Store) UpdateWatch(ctx context.Context, userID, watchID string, notifyOnDrop *bool, targetPrice *float64) (*models.Watch, error) {
+	row := s.pool.QueryRow(ctx, `
+		UPDATE watches
+		SET
+			notify_on_drop = COALESCE($3, notify_on_drop),
+			target_price = COALESCE($4, target_price)
+		WHERE id = $1 AND user_id = $2 AND active = TRUE
+		RETURNING id, COALESCE(user_id::text, ''), email, route_id,
+		          COALESCE(airline_code, ''), COALESCE(flight_number, ''),
+		          target_price, notify_on_drop, drop_percent::float8, active, created_at
+	`, watchID, userID, notifyOnDrop, targetPrice)
+
+	var w models.Watch
+	if err := row.Scan(
+		&w.ID, &w.UserID, &w.Email, &w.RouteID, &w.AirlineCode, &w.FlightNumber,
+		&w.TargetPrice, &w.NotifyOnDrop, &w.DropPercent, &w.Active, &w.CreatedAt,
+	); err != nil {
+		return nil, err
+	}
+	return &w, nil
 }
 
 func (s *Store) InsertAlert(ctx context.Context, a models.Alert) (*models.Alert, error) {

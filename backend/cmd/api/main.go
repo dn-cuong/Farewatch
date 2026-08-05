@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/farewatch/farewatch/internal/airlines"
 	"github.com/farewatch/farewatch/internal/alerts"
 	"github.com/farewatch/farewatch/internal/auth"
 	"github.com/farewatch/farewatch/internal/cache"
@@ -45,8 +46,12 @@ func main() {
 	mailer := alerts.NewMailer(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPFrom, cfg.SMTPUser, cfg.SMTPPass)
 	sc := scanner.New(cfg, st, c, mailer)
 	authSvc := auth.New(cfg.JWTSecret)
+	ignav := airlines.NewIgnav(cfg.IgnavAPIKey)
+	amadeus := airlines.NewAmadeus(cfg.AmadeusClientID, cfg.AmadeusClientSecret, cfg.AmadeusBaseURL)
+	freeSources := airlines.FreeSearchProviders(cfg.TravelpayoutsToken, cfg.RapidAPIKey)
+	fareProviders := airlines.AllProviders(ignav, amadeus, freeSources...)
 
-	schema, err := graph.NewSchema(st, sc, authSvc, cfg.FirebaseProjectID)
+	schema, err := graph.NewSchema(st, sc, authSvc, cfg.FirebaseProjectID, ignav, fareProviders)
 	if err != nil {
 		log.Fatalf("graphql schema: %v", err)
 	}

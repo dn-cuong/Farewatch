@@ -34,7 +34,7 @@ async function gql<T>(query: string, variables?: Record<string, unknown>): Promi
 
 export type User = { id: string; email: string; name: string; createdAt: string };
 
-export type Airport = { code: string; city: string };
+export type Airport = { code: string; city: string; country: string };
 
 export type Route = {
   id: string;
@@ -71,11 +71,50 @@ export type Fare = {
   observedAt: string;
 };
 
+export type FlightSegment = {
+  airlineCode: string;
+  airline: string;
+  flightNumber: string;
+  origin: string;
+  originCity: string;
+  destination: string;
+  destinationCity: string;
+  departAt: string;
+  arriveAt: string;
+  durationMinutes: number;
+  aircraft: string;
+};
+
+export type FlightOffer = {
+  offerId: string;
+  airline: string;
+  airlineCode: string;
+  flightNumber: string;
+  origin: string;
+  originCity: string;
+  destination: string;
+  destinationCity: string;
+  departAt: string;
+  arriveAt: string;
+  durationMinutes: number;
+  stops: number;
+  cabin: string;
+  aircraft: string;
+  price: number;
+  currency: string;
+  deepLink: string;
+  source: string;
+  layoverAirports: string[];
+  segments: FlightSegment[];
+};
+
 export type Watch = {
   id: string;
   userId?: string;
   email: string;
   routeId: string;
+  airlineCode?: string;
+  flightNumber?: string;
   targetPrice?: number | null;
   notifyOnDrop: boolean;
   dropPercent: number;
@@ -158,14 +197,14 @@ export function fetchMe() {
 }
 
 export function fetchAirports() {
-  return gql<{ airports: Airport[] }>(`query { airports { code city } }`).then((d) => d.airports);
+  return gql<{ airports: Airport[] }>(`query { airports { code city country } }`).then((d) => d.airports);
 }
 
 export function fetchMyWatches() {
   return gql<{ myWatches: Watch[] }>(`
     query {
       myWatches {
-        id email routeId targetPrice notifyOnDrop dropPercent active createdAt change24h
+        id email routeId airlineCode flightNumber targetPrice notifyOnDrop dropPercent active createdAt change24h
         route { id origin destination departDate returnDate cabin }
         latestFare {
           id airline airlineCode flightNumber origin originCity destination destinationCity
@@ -174,6 +213,98 @@ export function fetchMyWatches() {
       }
     }
   `).then((d) => d.myWatches);
+}
+
+export function searchFares(input: {
+  origin: string;
+  destination: string;
+  departDate: string;
+  returnDate?: string;
+  cabin?: string;
+}) {
+  return gql<{ searchFares: FlightOffer[] }>(
+    `query($origin: String!, $destination: String!, $departDate: String!, $returnDate: String, $cabin: String) {
+      searchFares(origin: $origin, destination: $destination, departDate: $departDate, returnDate: $returnDate, cabin: $cabin) {
+        offerId airline airlineCode flightNumber origin originCity destination destinationCity
+        departAt arriveAt durationMinutes stops cabin aircraft price currency deepLink source
+        layoverAirports
+        segments {
+          airlineCode airline flightNumber origin originCity destination destinationCity
+          departAt arriveAt durationMinutes aircraft
+        }
+      }
+    }`,
+    input,
+  ).then((d) => d.searchFares);
+}
+
+export function createWatch(input: {
+  origin: string;
+  destination: string;
+  departDate: string;
+  returnDate?: string;
+  cabin?: string;
+  airlineCode?: string;
+  flightNumber?: string;
+  targetPrice?: number;
+  dropPercent?: number;
+}) {
+  return gql<{ createWatch: Watch }>(
+    `mutation($origin: String!, $destination: String!, $departDate: String!, $returnDate: String, $cabin: String, $airlineCode: String, $flightNumber: String, $targetPrice: Float, $dropPercent: Float) {
+      createWatch(origin: $origin, destination: $destination, departDate: $departDate, returnDate: $returnDate, cabin: $cabin, airlineCode: $airlineCode, flightNumber: $flightNumber, targetPrice: $targetPrice, dropPercent: $dropPercent) {
+        id email routeId airlineCode flightNumber targetPrice active
+        route { id origin destination departDate cabin }
+      }
+    }`,
+    input,
+  ).then((d) => d.createWatch);
+}
+
+export function createEmailWatch(input: {
+  email: string;
+  origin: string;
+  destination: string;
+  departDate: string;
+  returnDate?: string;
+  cabin?: string;
+  airlineCode?: string;
+  flightNumber?: string;
+  targetPrice?: number;
+}) {
+  return gql<{ createEmailWatch: Watch }>(
+    `mutation($email: String!, $origin: String!, $destination: String!, $departDate: String!, $returnDate: String, $cabin: String, $airlineCode: String, $flightNumber: String, $targetPrice: Float) {
+      createEmailWatch(email: $email, origin: $origin, destination: $destination, departDate: $departDate, returnDate: $returnDate, cabin: $cabin, airlineCode: $airlineCode, flightNumber: $flightNumber, targetPrice: $targetPrice) {
+        id email routeId airlineCode flightNumber targetPrice active
+      }
+    }`,
+    input,
+  ).then((d) => d.createEmailWatch);
+}
+
+export type BookingLink = {
+  providerName: string;
+  providerType: string;
+  fareName: string;
+  price: number;
+  currency: string;
+  url: string;
+};
+
+export function fetchBookingLinks(input: {
+  offerId: string;
+  origin?: string;
+  destination?: string;
+  departDate?: string;
+  returnDate?: string;
+}) {
+  return gql<{ bookingLinks: BookingLink[] }>(
+    `query($offerId: String!, $origin: String, $destination: String, $departDate: String, $returnDate: String) {
+      bookingLinks(offerId: $offerId, origin: $origin, destination: $destination, departDate: $departDate, returnDate: $returnDate) {
+        providerName providerType fareName price currency url
+      }
+    }`,
+    input,
+  ).then((d) => d.bookingLinks);
 }
 
 export function fetchFares(routeId: string, limit = 40) {
@@ -199,24 +330,15 @@ export function fetchMyAlerts(limit = 12) {
   ).then((d) => d.myAlerts);
 }
 
-export function createWatch(input: {
-  origin: string;
-  destination: string;
-  departDate: string;
-  returnDate?: string;
-  cabin?: string;
-  targetPrice?: number;
-  dropPercent?: number;
-}) {
-  return gql<{ createWatch: Watch }>(
-    `mutation($origin: String!, $destination: String!, $departDate: String!, $returnDate: String, $cabin: String, $targetPrice: Float, $dropPercent: Float) {
-      createWatch(origin: $origin, destination: $destination, departDate: $departDate, returnDate: $returnDate, cabin: $cabin, targetPrice: $targetPrice, dropPercent: $dropPercent) {
-        id email routeId targetPrice active
-        route { id origin destination departDate cabin }
+export function updateWatch(input: { id: string; notifyOnDrop?: boolean; targetPrice?: number }) {
+  return gql<{ updateWatch: Watch }>(
+    `mutation($id: ID!, $notifyOnDrop: Boolean, $targetPrice: Float) {
+      updateWatch(id: $id, notifyOnDrop: $notifyOnDrop, targetPrice: $targetPrice) {
+        id email routeId airlineCode flightNumber targetPrice notifyOnDrop dropPercent active createdAt
       }
     }`,
     input,
-  ).then((d) => d.createWatch);
+  ).then((d) => d.updateWatch);
 }
 
 export function removeWatch(id: string) {

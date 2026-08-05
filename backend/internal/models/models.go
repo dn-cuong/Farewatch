@@ -51,6 +51,8 @@ type Watch struct {
 	UserID       string    `json:"userId"`
 	Email        string    `json:"email"`
 	RouteID      string    `json:"routeId"`
+	AirlineCode  string    `json:"airlineCode,omitempty"`
+	FlightNumber string    `json:"flightNumber,omitempty"`
 	TargetPrice  *float64  `json:"targetPrice,omitempty"`
 	NotifyOnDrop bool      `json:"notifyOnDrop"`
 	DropPercent  float64   `json:"dropPercent"`

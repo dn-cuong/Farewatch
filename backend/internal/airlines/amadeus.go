@@ -116,6 +116,9 @@ func (a *AmadeusClient) SearchCarrier(ctx context.Context, carrier, origin, dest
 	if err != nil {
 		return Offer{}, false, err
 	}
+	from := LookupAirport(strings.ToUpper(origin))
+	to := LookupAirport(strings.ToUpper(dest))
+	distanceKm := haversineKm(from.Lat, from.Lon, to.Lat, to.Lon)
 	if cabin == "" {
 		cabin = "ECONOMY"
 	}
@@ -160,16 +163,17 @@ func (a *AmadeusClient) SearchCarrier(ctx context.Context, carrier, origin, dest
 		}
 		segs := d.Itineraries[0].Segments
 		first, last := segs[0], segs[len(segs)-1]
-		departAt, _ := time.Parse("2006-01-02T15:04:05", first.Departure.At)
-		arriveAt, _ := time.Parse("2006-01-02T15:04:05", last.Arrival.At)
+		departAt := parseProviderTime(first.Departure.At)
+		arriveAt := parseProviderTime(last.Arrival.At)
 		var price float64
 		_, _ = fmt.Sscanf(d.Price.Total, "%f", &price)
+		if !plausibleItineraryPrice(distanceKm, len(segs)-1, cabin, price) {
+			continue
+		}
 		name := parsed.Dictionaries.Carriers[code]
 		if name == "" {
 			name = code
 		}
-		from := LookupAirport(first.Departure.IataCode)
-		to := LookupAirport(last.Arrival.IataCode)
 		off := Offer{
 			Airline:         name,
 			AirlineCode:     code,
@@ -202,30 +206,29 @@ func (a *AmadeusClient) SearchCarrier(ctx context.Context, carrier, origin, dest
 
 // AmadeusBackedProvider tries Amadeus first, then falls back to the airline simulator.
 type AmadeusBackedProvider struct {
-	inner    Provider
-	amadeus  *AmadeusClient
+	inner   Provider
+	amadeus *AmadeusClient
 }
 
 func (p *AmadeusBackedProvider) Code() string { return p.inner.Code() }
 func (p *AmadeusBackedProvider) Name() string { return p.inner.Name() }
+func (p *AmadeusBackedProvider) Kind() string {
+	if k, ok := p.inner.(interface{ Kind() string }); ok {
+		return k.Kind()
+	}
+	return "airline"
+}
 
-func (p *AmadeusBackedProvider) Fetch(ctx context.Context, origin, dest, departDate string, returnDate *string, cabin string) (Offer, error) {
+func (p *AmadeusBackedProvider) Fetch(ctx context.Context, origin, dest, departDate string, returnDate *string, cabin string) ([]Offer, error) {
 	if p.amadeus != nil {
 		if off, ok, err := p.amadeus.SearchCarrier(ctx, p.Code(), origin, dest, departDate, cabin); err == nil && ok {
-			return off, nil
+			off.Source = "search:amadeus"
+			return []Offer{off}, nil
 		}
 	}
 	return p.inner.Fetch(ctx, origin, dest, departDate, returnDate, cabin)
 }
 
 func AllWithAmadeus(client *AmadeusClient) []Provider {
-	base := All()
-	if client == nil {
-		return base
-	}
-	out := make([]Provider, len(base))
-	for i, p := range base {
-		out[i] = &AmadeusBackedProvider{inner: p, amadeus: client}
-	}
-	return out
+	return AllProviders(nil, client)
 }

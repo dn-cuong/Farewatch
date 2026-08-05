@@ -1,0 +1,274 @@
+.root {
+  position: relative;
+  min-width: 0;
+}
+
+.trigger {
+  width: 100%;
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.6rem 0.8rem 0.6rem 1rem;
+  border: 1px solid var(--fw-border);
+  border-radius: var(--fw-radius-pill);
+  background: rgba(255, 255, 255, 0.58);
+  color: var(--fw-foreground);
+  text-align: left;
+  outline: none;
+  transition:
+    border-color var(--fw-duration) var(--fw-ease),
+    box-shadow var(--fw-duration) var(--fw-ease),
+    background var(--fw-duration) var(--fw-ease);
+}
+
+.trigger:hover {
+  border-color: color-mix(in srgb, var(--fw-primary) 35%, var(--fw-border));
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.trigger:focus-visible,
+.triggerOpen {
+  border-color: color-mix(in srgb, var(--fw-primary) 50%, var(--fw-border));
+  box-shadow:
+    0 0 0 2px var(--fw-background),
+    0 0 0 4px color-mix(in srgb, var(--fw-primary) 24%, transparent);
+}
+
+.trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.triggerText {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.selectedCode {
+  flex: 0 0 auto;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+}
+
+.selectedLabel,
+.placeholder {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+}
+
+.placeholder {
+  color: var(--fw-muted-foreground);
+}
+
+.chevron {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  color: var(--fw-muted-foreground);
+  transition: transform var(--fw-duration) var(--fw-ease);
+}
+
+.triggerOpen .chevron {
+  transform: rotate(180deg);
+}
+
+.popover {
+  position: absolute;
+  z-index: 35;
+  top: calc(100% + 0.55rem);
+  left: 0;
+  width: max(100%, 20rem);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--fw-border) 84%, transparent);
+  border-radius: 1.15rem;
+  background: color-mix(in srgb, var(--fw-background) 96%, white);
+  box-shadow:
+    0 22px 55px rgba(35, 42, 31, 0.16),
+    0 4px 14px rgba(35, 42, 31, 0.07);
+  backdrop-filter: blur(18px);
+  animation: reveal 140ms var(--fw-ease);
+}
+
+.popoverUp {
+  top: auto;
+  bottom: calc(100% + 0.55rem);
+}
+
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 0.75rem;
+  border: 1px solid var(--fw-border);
+  border-radius: var(--fw-radius-pill);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.searchWrap:focus-within {
+  border-color: color-mix(in srgb, var(--fw-primary) 48%, var(--fw-border));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--fw-primary) 12%, transparent);
+}
+
+.searchWrap > svg {
+  width: 1rem;
+  height: 1rem;
+  margin-left: 0.85rem;
+  fill: none;
+  stroke: var(--fw-muted-foreground);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* Higher specificity than the global `.field input` pill styling, since the
+   dropdown renders inside a `.field` wrapper. */
+.searchWrap input.searchInput {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  height: 2.55rem;
+  padding: 0 0.5rem;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  box-shadow: none;
+  background: transparent;
+  font-size: 0.88rem;
+}
+
+.searchWrap button {
+  width: 2rem;
+  height: 2rem;
+  margin-right: 0.25rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fw-muted-foreground);
+  font-size: 1.15rem;
+}
+
+.searchWrap button:hover {
+  background: color-mix(in srgb, var(--fw-primary) 10%, transparent);
+}
+
+.menu {
+  max-height: min(22rem, 52vh);
+  overflow-y: auto;
+  padding: 0 0.45rem 0.55rem;
+  outline: none;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--fw-primary) 30%, transparent) transparent;
+}
+
+.group {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.65rem 0.65rem 0.35rem;
+  background: color-mix(in srgb, var(--fw-background) 96%, white);
+  color: var(--fw-muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.option {
+  width: 100%;
+  min-height: 2.65rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.7rem;
+  border: 0;
+  border-radius: 0.75rem;
+  background: transparent;
+  color: var(--fw-foreground);
+  text-align: left;
+}
+
+.option:hover,
+.optionActive {
+  background: color-mix(in srgb, var(--fw-primary) 11%, transparent);
+}
+
+.option[aria-selected='true'] {
+  background: color-mix(in srgb, var(--fw-primary) 15%, transparent);
+}
+
+.optionContent {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+}
+
+.optionContent strong {
+  width: 2.25rem;
+  flex: 0 0 auto;
+  color: var(--fw-primary);
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
+}
+
+.optionContent span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
+
+.check {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+  fill: none;
+  stroke: var(--fw-primary);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.empty {
+  padding: 1.75rem 1rem 2rem;
+  color: var(--fw-muted-foreground);
+  font-size: 0.88rem;
+  text-align: center;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-0.35rem) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 720px) {
+  .popover {
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popover {
+    animation: none;
+  }
+}

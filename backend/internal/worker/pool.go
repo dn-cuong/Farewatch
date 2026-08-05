@@ -17,10 +17,11 @@ type Job struct {
 }
 
 type Result struct {
-	RouteID string
-	Offer   airlines.Offer
-	Cached  bool
-	Err     error
+	RouteID  string
+	Provider string
+	Offers   []airlines.Offer
+	Cached   bool
+	Err      error
 }
 
 type Pool struct {
@@ -73,27 +74,38 @@ func (p *Pool) Run(ctx context.Context, jobs []Job) []Result {
 			defer wg.Done()
 			for job := range jobCh {
 				if ctx.Err() != nil {
-					resCh <- Result{RouteID: job.Route.ID, Err: ctx.Err()}
+					resCh <- Result{RouteID: job.Route.ID, Provider: job.Provider.Code(), Err: ctx.Err()}
 					continue
 				}
-				if fare, ok, err := p.cache.GetFare(ctx, job.Route.ID, job.Provider.Code()); err == nil && ok {
-					resCh <- Result{RouteID: job.Route.ID, Offer: offerFromFare(fare), Cached: true}
-					continue
+				// Airline adapters cache a single quote per route+provider.
+				// Search APIs return many offers — skip single-slot cache for them.
+				if job.Provider.Kind() == "airline" {
+					if fare, ok, err := p.cache.GetFare(ctx, job.Route.ID, job.Provider.Code()); err == nil && ok {
+						resCh <- Result{
+							RouteID:  job.Route.ID,
+							Provider: job.Provider.Code(),
+							Offers:   []airlines.Offer{offerFromFare(fare)},
+							Cached:   true,
+						}
+						continue
+					}
 				}
 				select {
 				case <-ctx.Done():
-					resCh <- Result{RouteID: job.Route.ID, Err: ctx.Err()}
+					resCh <- Result{RouteID: job.Route.ID, Provider: job.Provider.Code(), Err: ctx.Err()}
 					continue
 				case <-p.limiter:
 				}
-				o, err := job.Provider.Fetch(ctx, job.Route.Origin, job.Route.Destination, job.Route.DepartDate, job.Route.ReturnDate, job.Route.Cabin)
+				offers, err := job.Provider.Fetch(ctx, job.Route.Origin, job.Route.Destination, job.Route.DepartDate, job.Route.ReturnDate, job.Route.Cabin)
 				if err != nil {
-					log.Printf("worker=%d airline=%s route=%s err=%v", workerID, job.Provider.Code(), job.Route.ID, err)
-					resCh <- Result{RouteID: job.Route.ID, Err: err}
+					log.Printf("worker=%d provider=%s kind=%s route=%s err=%v", workerID, job.Provider.Code(), job.Provider.Kind(), job.Route.ID, err)
+					resCh <- Result{RouteID: job.Route.ID, Provider: job.Provider.Code(), Err: err}
 					continue
 				}
-				_ = p.cache.SetFare(ctx, fareFromOffer(job.Route.ID, o, false))
-				resCh <- Result{RouteID: job.Route.ID, Offer: o, Cached: false}
+				if job.Provider.Kind() == "airline" && len(offers) > 0 {
+					_ = p.cache.SetFare(ctx, fareFromOffer(job.Route.ID, offers[0], false))
+				}
+				resCh <- Result{RouteID: job.Route.ID, Provider: job.Provider.Code(), Offers: offers, Cached: false}
 			}
 		}(i + 1)
 	}

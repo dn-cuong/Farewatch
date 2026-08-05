@@ -49,6 +49,8 @@ services:
       CACHE_TTL_SECONDS: "900"
       # Prefer explicit interpolation so empty host exports cannot blank secrets from env_file.
       IGNAV_API_KEY: ${IGNAV_API_KEY}
+      TRAVELPAYOUTS_TOKEN: ${TRAVELPAYOUTS_TOKEN:-}
+      RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
       JWT_SECRET: ${JWT_SECRET:-farewatch-dev-secret-change-me}
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -79,6 +81,8 @@ services:
       DATABASE_URL: postgres://farewatch:farewatch@postgres:5432/farewatch?sslmode=disable
       REDIS_URL: redis://redis:6379/0
       IGNAV_API_KEY: ${IGNAV_API_KEY}
+      TRAVELPAYOUTS_TOKEN: ${TRAVELPAYOUTS_TOKEN:-}
+      RAPIDAPI_KEY: ${RAPIDAPI_KEY:-}
       JWT_SECRET: ${JWT_SECRET:-farewatch-dev-secret-change-me}
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}

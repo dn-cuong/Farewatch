@@ -22,23 +22,22 @@ type Scanner struct {
 	cache     *cache.Cache
 	mailer    *alerts.Mailer
 	providers []airlines.Provider
-	ignav     *airlines.IgnavClient
 }
 
 func New(cfg config.Config, st *store.Store, c *cache.Cache, mailer *alerts.Mailer) *Scanner {
 	ignav := airlines.NewIgnav(cfg.IgnavAPIKey)
-	if ignav != nil {
-		log.Printf("fare source: Ignav (live)")
-	} else {
-		log.Printf("fare source: airline simulators (set IGNAV_API_KEY for live market data)")
-	}
+	amadeus := airlines.NewAmadeus(cfg.AmadeusClientID, cfg.AmadeusClientSecret, cfg.AmadeusBaseURL)
+	extras := airlines.FreeSearchProviders(cfg.TravelpayoutsToken, cfg.RapidAPIKey)
+	providers := airlines.AllProviders(ignav, amadeus, extras...)
+	airlineCount := airlines.AirlineProviderCount()
+	log.Printf("fare providers: %d (%d airline adapters + %d configured search sources)",
+		len(providers), airlineCount, len(providers)-airlineCount)
 	return &Scanner{
 		cfg:       cfg,
 		store:     st,
 		cache:     c,
 		mailer:    mailer,
-		providers: airlines.AllWithLive(ignav),
-		ignav:     ignav,
+		providers: providers,
 	}
 }
 
@@ -60,42 +59,48 @@ func (s *Scanner) Run(ctx context.Context) (*models.ScanStats, error) {
 		return stats, nil
 	}
 
-	if s.ignav != nil {
-		if err := s.runIgnav(ctx, routes, stats); err != nil {
-			log.Printf("ignav scan error, falling back to providers: %v", err)
-			s.runProviders(ctx, routes, stats)
-		}
-	} else {
-		s.runProviders(ctx, routes, stats)
-	}
+	s.runProviders(ctx, routes, stats)
 
 	hits, misses, hitRate := s.cache.Stats()
 	stats.CacheHits = int(hits)
 	stats.CacheMisses = int(misses)
 	stats.CacheHitRate = hitRate
 	stats.DurationMs = time.Since(start).Milliseconds()
-	log.Printf("scan complete routes=%d fares=%d cache_hit_rate=%.1f%% alerts=%d duration_ms=%d",
-		stats.RoutesScanned, stats.FaresFound, stats.CacheHitRate, stats.AlertsSent, stats.DurationMs)
+	log.Printf("scan complete routes=%d fares=%d providers=%d cache_hit_rate=%.1f%% alerts=%d duration_ms=%d",
+		stats.RoutesScanned, stats.FaresFound, stats.AirlinesQueried, stats.CacheHitRate, stats.AlertsSent, stats.DurationMs)
 	return stats, nil
 }
 
-func (s *Scanner) runIgnav(ctx context.Context, routes []models.Route, stats *models.ScanStats) error {
-	carriers := map[string]struct{}{}
-	for _, route := range routes {
-		offers, err := s.ignav.Search(ctx, route.Origin, route.Destination, route.DepartDate, route.ReturnDate)
-		if err != nil {
-			return err
-		}
-		if len(offers) == 0 {
-			log.Printf("ignav: no itineraries for %s→%s on %s", route.Origin, route.Destination, route.DepartDate)
+func (s *Scanner) runProviders(ctx context.Context, routes []models.Route, stats *models.ScanStats) {
+	pool := worker.NewPool(s.cfg.WorkerCount, s.cfg.RateLimitPerSec, s.cache)
+	results := pool.Run(ctx, worker.BuildJobs(routes, s.providers))
+
+	byRoute := map[string][]airlines.Offer{}
+	queried := map[string]struct{}{}
+	for _, res := range results {
+		if res.Err != nil {
 			continue
 		}
-		for _, o := range offers {
-			carriers[o.AirlineCode] = struct{}{}
-			fare := offerToFare(route.ID, o, false)
+		queried[res.Provider] = struct{}{}
+		for _, o := range res.Offers {
+			o := o
+			if res.Cached {
+				// keep source from cache
+			}
+			byRoute[res.RouteID] = append(byRoute[res.RouteID], o)
+		}
+	}
+	if len(queried) > 0 {
+		stats.AirlinesQueried = len(queried)
+	}
+
+	for routeID, offers := range byRoute {
+		deduped := airlines.DeduplicateCheapest(offers)
+		for _, o := range deduped {
+			fare := offerToFare(routeID, o, false)
 			_ = s.cache.SetFare(ctx, fare)
 
-			prev, prevErr := s.store.LatestFareByAirline(ctx, route.ID, o.AirlineCode)
+			prev, prevErr := s.store.LatestFareForSelection(ctx, routeID, o.AirlineCode, o.FlightNumber)
 			saved, err := s.store.InsertFare(ctx, fare)
 			if err != nil {
 				log.Printf("insert fare: %v", err)
@@ -115,41 +120,6 @@ func (s *Scanner) runIgnav(ctx context.Context, routes []models.Route, stats *mo
 				}
 				stats.AlertsSent += n
 			}
-		}
-	}
-	if len(carriers) > 0 {
-		stats.AirlinesQueried = len(carriers)
-	}
-	return nil
-}
-
-func (s *Scanner) runProviders(ctx context.Context, routes []models.Route, stats *models.ScanStats) {
-	pool := worker.NewPool(s.cfg.WorkerCount, s.cfg.RateLimitPerSec, s.cache)
-	results := pool.Run(ctx, worker.BuildJobs(routes, s.providers))
-	for _, res := range results {
-		if res.Err != nil {
-			continue
-		}
-		stats.FaresFound++
-		fare := offerToFare(res.RouteID, res.Offer, res.Cached)
-		prev, prevErr := s.store.LatestFareByAirline(ctx, res.RouteID, res.Offer.AirlineCode)
-		saved, err := s.store.InsertFare(ctx, fare)
-		if err != nil {
-			log.Printf("insert fare: %v", err)
-			continue
-		}
-		if prevErr != nil {
-			if !errors.Is(prevErr, pgx.ErrNoRows) {
-				log.Printf("prev fare lookup: %v", prevErr)
-			}
-			continue
-		}
-		if saved.Price < prev.Price {
-			n, err := s.maybeAlert(ctx, saved, prev.Price)
-			if err != nil {
-				log.Printf("alert: %v", err)
-			}
-			stats.AlertsSent += n
 		}
 	}
 }
@@ -176,6 +146,12 @@ func (s *Scanner) maybeAlert(ctx context.Context, fare *models.Fare, oldPrice fl
 	}
 	sent := 0
 	for _, w := range watches {
+		if w.AirlineCode != "" && w.AirlineCode != fare.AirlineCode {
+			continue
+		}
+		if w.FlightNumber != "" && w.FlightNumber != fare.FlightNumber {
+			continue
+		}
 		dropPct := 0.0
 		if oldPrice > 0 {
 			dropPct = (oldPrice - fare.Price) / oldPrice * 100

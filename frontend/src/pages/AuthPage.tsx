@@ -1,21 +1,65 @@
-import { useState, type FormEvent } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { login, loginWithFirebase, register } from '../api';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { createWatch, login, loginWithFirebase, register } from '../api';
 import { useAuth } from '../auth';
 import { firebaseEnabled, signInWithGoogle } from '../firebase';
+import { clearPendingWatch, loadPendingWatch } from '../pendingWatch';
 import styles from './AuthPage.module.css';
 
 export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
   const { user, setUser, loading } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [completing, setCompleting] = useState(false);
   const showGoogle = firebaseEnabled();
+  const pending = loadPendingWatch();
+  const fromWatch = params.get('next') === 'watch' || !!pending;
 
-  if (!loading && user) return <Navigate to="/dashboard" replace />;
+  async function finishAuth() {
+    const selected = loadPendingWatch();
+    if (selected) {
+      await createWatch({
+        origin: selected.origin,
+        destination: selected.destination,
+        departDate: selected.departDate,
+        returnDate: selected.returnDate,
+        cabin: selected.cabin,
+        airlineCode: selected.airlineCode,
+        flightNumber: selected.flightNumber,
+        targetPrice: selected.targetPrice,
+        dropPercent: 5,
+      });
+      clearPendingWatch();
+    }
+    navigate('/dashboard');
+  }
+
+  useEffect(() => {
+    if (loading || !user || !fromWatch || completing || busy) return;
+    setCompleting(true);
+    finishAuth().catch((err) => {
+      setCompleting(false);
+      setError(err instanceof Error ? err.message : 'Could not start watch');
+    });
+    // intentionally run once when an already-signed-in user lands with a pending selection
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, user, fromWatch]);
+
+  if (!loading && user && !fromWatch) return <Navigate to="/dashboard" replace />;
+  if (!loading && user && fromWatch && !error) {
+    return (
+      <div className="app-shell">
+        <div className="app-content">
+          <p style={{ padding: '3rem 1rem', textAlign: 'center' }}>Saving your selected flight…</p>
+        </div>
+      </div>
+    );
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -27,7 +71,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           ? await register({ email, password, name })
           : await login({ email, password });
       setUser(u);
-      navigate('/dashboard');
+      await finishAuth();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Auth failed');
     } finally {
@@ -42,7 +86,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
       const idToken = await signInWithGoogle();
       const u = await loginWithFirebase(idToken);
       setUser(u);
-      navigate('/dashboard');
+      await finishAuth();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Google sign-in failed');
     } finally {
@@ -66,9 +110,11 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
           <div className={styles.card}>
             <h1>{mode === 'register' ? 'Create your account' : 'Welcome back'}</h1>
             <p>
-              {mode === 'register'
-                ? 'Save the trips you care about and get a calm email when fares drop.'
-                : 'Sign in to see the routes you’re watching.'}
+              {pending
+                ? `Almost there. We’ll start watching ${pending.airline} ${pending.flightNumber} (${pending.origin} → ${pending.destination}) after you ${mode === 'register' ? 'register' : 'sign in'}.`
+                : mode === 'register'
+                  ? 'Save the trips you care about and get a calm email when fares drop.'
+                  : 'Sign in to see the routes you’re watching.'}
             </p>
 
             {showGoogle && (
@@ -125,7 +171,15 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
               </div>
               <div className="full">
                 <button className="btn btn-primary" type="submit" disabled={busy} style={{ width: '100%' }}>
-                  {busy ? 'Working…' : mode === 'register' ? 'Create account' : 'Sign in'}
+                  {busy
+                    ? 'Working…'
+                    : mode === 'register'
+                      ? pending
+                        ? 'Create account & watch'
+                        : 'Create account'
+                      : pending
+                        ? 'Sign in & watch'
+                        : 'Sign in'}
                 </button>
               </div>
             </form>
@@ -135,11 +189,13 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
             <p className={styles.switch}>
               {mode === 'register' ? (
                 <>
-                  Already have an account? <Link to="/login">Sign in</Link>
+                  Already have an account?{' '}
+                  <Link to={pending ? '/login?next=watch' : '/login'}>Sign in</Link>
                 </>
               ) : (
                 <>
-                  New here? <Link to="/register">Create an account</Link>
+                  New here?{' '}
+                  <Link to={pending ? '/register?next=watch' : '/register'}>Create an account</Link>
                 </>
               )}
             </p>

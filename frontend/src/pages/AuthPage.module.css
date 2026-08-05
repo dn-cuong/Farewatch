@@ -45,3 +45,20 @@
   color: var(--fw-destructive);
   font-size: var(--fw-text-sm);
 }
+
+@media (max-width: 560px) {
+  .wrap {
+    min-height: auto;
+    place-items: start stretch;
+    padding: 0.5rem 0 2rem;
+  }
+
+  .card {
+    padding: 1.5rem 1.1rem;
+    border-radius: 1.5rem;
+  }
+
+  .card h1 {
+    font-size: 1.75rem;
+  }
+}
