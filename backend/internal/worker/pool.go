@@ -26,6 +26,7 @@ type Result struct {
 
 type Pool struct {
 	workers int
+	ticker  *time.Ticker
 	limiter <-chan time.Time
 	cache   *cache.Cache
 }
@@ -38,7 +39,7 @@ func NewPool(workers, ratePerSec int, c *cache.Cache) *Pool {
 		ratePerSec = 10
 	}
 	ticker := time.NewTicker(time.Second / time.Duration(ratePerSec))
-	return &Pool{workers: workers, limiter: ticker.C, cache: c}
+	return &Pool{workers: workers, ticker: ticker, limiter: ticker.C, cache: c}
 }
 
 func offerFromFare(f *models.Fare) airlines.Offer {
@@ -64,6 +65,10 @@ func fareFromOffer(routeID string, o airlines.Offer, cached bool) models.Fare {
 }
 
 func (p *Pool) Run(ctx context.Context, jobs []Job) []Result {
+	// A new Pool (and ticker) is created per scan — stop it here so repeated
+	// scans over the app's lifetime don't leak one ticker goroutine each.
+	defer p.ticker.Stop()
+
 	jobCh := make(chan Job, len(jobs))
 	resCh := make(chan Result, len(jobs))
 	var wg sync.WaitGroup

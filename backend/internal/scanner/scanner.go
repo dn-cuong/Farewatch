@@ -181,13 +181,7 @@ func (s *Scanner) runProviders(ctx context.Context, routes []models.Route, stats
 			continue
 		}
 		queried[res.Provider] = struct{}{}
-		for _, o := range res.Offers {
-			o := o
-			if res.Cached {
-				// keep source from cache
-			}
-			byRoute[res.RouteID] = append(byRoute[res.RouteID], o)
-		}
+		byRoute[res.RouteID] = append(byRoute[res.RouteID], res.Offers...)
 	}
 	if len(queried) > 0 {
 		stats.AirlinesQueried = len(queried)
