@@ -114,6 +114,19 @@ export function DashboardPage() {
     }
   }
 
+  async function onUpdateTargetPrice(id: string, targetPrice: number) {
+    setBusyAction(`target:${id}`);
+    try {
+      await updateWatch({ id, targetPrice });
+      setToast(`Alert threshold updated to ${formatPrice(targetPrice)}.`);
+      await refresh();
+    } catch (err) {
+      setToast(err instanceof Error ? err.message : 'Could not update alert price');
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
   return (
     <div className="app-shell">
       <div className="blob blob-a" aria-hidden />
@@ -170,6 +183,7 @@ export function DashboardPage() {
               watch={selected}
               onRemove={onRemove}
               onToggleEmail={onToggleEmail}
+              onUpdateTargetPrice={onUpdateTargetPrice}
               busyAction={busyAction}
             />
 

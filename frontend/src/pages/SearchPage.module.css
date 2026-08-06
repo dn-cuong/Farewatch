@@ -248,6 +248,24 @@
   font-size: 1.02rem;
 }
 
+.sourceTag {
+  display: inline-block;
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fw-muted-foreground, var(--muted));
+  background: color-mix(in srgb, var(--fw-muted, #eee) 70%, transparent);
+  border-radius: var(--fw-radius-pill, 999px);
+  padding: 0.15rem 0.55rem;
+  vertical-align: middle;
+}
+
+.sourceTagEstimated {
+  color: var(--fw-secondary, #9a6a2f);
+  background: color-mix(in srgb, var(--fw-secondary, #c18c5d) 16%, transparent);
+}
+
 .cities {
   margin-top: 0.2rem;
   color: var(--muted);

@@ -5,7 +5,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { fetchMe, logout as apiLogout, type User } from './api';
+import { fetchMe, getToken, logout as apiLogout, type User } from './api';
 
 type AuthCtx = {
   user: User | null;
@@ -22,10 +22,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   async function refresh() {
+    if (!getToken()) {
+      setUser(null);
+      return;
+    }
     try {
       const me = await fetchMe();
       setUser(me);
     } catch {
+      // Token is missing, expired, or rejected by the API — drop it so we
+      // stop sending a dead Bearer header on every subsequent request.
+      apiLogout();
       setUser(null);
     }
   }

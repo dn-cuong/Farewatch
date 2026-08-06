@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { Watch } from '../api';
 import { EmptyState, ErrorState, LoadingState } from './StatusStates';
 import { formatPrice } from '../utils/price';
@@ -90,6 +91,11 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
         <EmptyState
           title="No email watches yet"
           message="Search a route, pick a flight, and we’ll email you when that fare drops."
+          action={
+            <Link className="btn btn-primary" to="/search">
+              Search flights
+            </Link>
+          }
         />
       </div>
     );

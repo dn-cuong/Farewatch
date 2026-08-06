@@ -139,6 +139,49 @@
   color: var(--fw-secondary);
 }
 
+.targetDisplay {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.editTarget {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--fw-muted-foreground);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.targetEditForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.targetEditForm input {
+  width: 5.5rem;
+  min-height: 1.9rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--fw-border);
+  font-size: 0.95rem;
+}
+
+.targetEditForm :global(.btn) {
+  min-height: 1.9rem;
+  padding: 0 0.6rem;
+  font-size: 0.78rem;
+}
+
 .chartShell {
   position: relative;
 }

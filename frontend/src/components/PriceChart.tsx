@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { fetchFares, type Fare, type Watch } from '../api';
 import { EmptyState, LoadingState } from './StatusStates';
 import { formatPrice, formatPriceDelta } from '../utils/price';
@@ -8,6 +8,7 @@ type Props = {
   watch: Watch | null;
   onRemove?: (id: string) => void | Promise<void>;
   onToggleEmail?: (id: string, notifyOnDrop: boolean) => void | Promise<void>;
+  onUpdateTargetPrice?: (id: string, targetPrice: number) => void | Promise<void>;
   busyAction?: string | null;
 };
 
@@ -32,17 +33,20 @@ function formatStamp(iso: string) {
   });
 }
 
-export function PriceChart({ watch, onRemove, onToggleEmail, busyAction }: Props) {
+export function PriceChart({ watch, onRemove, onToggleEmail, onUpdateTargetPrice, busyAction }: Props) {
   const [fares, setFares] = useState<Fare[]>([]);
   const [loading, setLoading] = useState(false);
   const [range, setRange] = useState<RangeKey>('30d');
   const [hover, setHover] = useState<number | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [editingTarget, setEditingTarget] = useState(false);
+  const [targetInput, setTargetInput] = useState('');
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     setConfirmRemove(false);
     setHover(null);
+    setEditingTarget(false);
   }, [watch?.id]);
 
   useEffect(() => {
@@ -185,6 +189,20 @@ export function PriceChart({ watch, onRemove, onToggleEmail, busyAction }: Props
   const emailOn = watch.notifyOnDrop;
   const removing = busyAction === `remove:${watch.id}`;
   const toggling = busyAction === `email:${watch.id}`;
+  const savingTarget = busyAction === `target:${watch.id}`;
+
+  function startEditTarget() {
+    setTargetInput(threshold ? String(threshold) : '');
+    setEditingTarget(true);
+  }
+
+  async function submitTarget(e: FormEvent) {
+    e.preventDefault();
+    const value = Number(targetInput);
+    if (!onUpdateTargetPrice || !Number.isFinite(value) || value <= 0) return;
+    await onUpdateTargetPrice(watch.id, Math.round(value * 100) / 100);
+    setEditingTarget(false);
+  }
 
   return (
     <div className={`panel ${styles.panelOrganic}`}>
@@ -251,7 +269,35 @@ export function PriceChart({ watch, onRemove, onToggleEmail, busyAction }: Props
           </div>
           <div className={styles.metric}>
             <label>Alert ≤</label>
-            <strong className={styles.alertTone}>{formatPrice(threshold, latest?.currency ?? 'USD')}</strong>
+            {editingTarget ? (
+              <form className={styles.targetEditForm} onSubmit={submitTarget}>
+                <input
+                  className="mono"
+                  type="number"
+                  min={1}
+                  step={1}
+                  autoFocus
+                  value={targetInput}
+                  onChange={(e) => setTargetInput(e.target.value)}
+                  aria-label="New alert price"
+                />
+                <button type="submit" className="btn btn-primary" disabled={savingTarget}>
+                  {savingTarget ? 'Saving…' : 'Save'}
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => setEditingTarget(false)}>
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <span className={styles.targetDisplay}>
+                <strong className={styles.alertTone}>{formatPrice(threshold, latest?.currency ?? 'USD')}</strong>
+                {onUpdateTargetPrice && (
+                  <button type="button" className={styles.editTarget} onClick={startEditTarget}>
+                    Edit
+                  </button>
+                )}
+              </span>
+            )}
           </div>
           <div className={styles.metric}>
             <label>Email</label>

@@ -44,6 +44,15 @@ function stopsLabel(stops: number, layovers: string[]) {
   return `${stops} stop${stops > 1 ? 's' : ''}`;
 }
 
+function sourceLabel(source: string): { text: string; simulated: boolean } {
+  if (!source) return { text: 'Unknown source', simulated: false };
+  const [kind, name] = source.split(':', 2);
+  if (kind === 'simulator') return { text: 'Estimated fare', simulated: true };
+  if (kind === 'airline') return { text: `Direct · ${name}`, simulated: false };
+  if (kind === 'search') return { text: `via ${name}`, simulated: false };
+  return { text: source, simulated: false };
+}
+
 function defaultDepartDate() {
   const d = new Date();
   d.setDate(d.getDate() + 21);
@@ -87,6 +96,18 @@ export function SearchPage() {
   const [bookingLinks, setBookingLinks] = useState<BookingLink[]>([]);
   const [bookingBusy, setBookingBusy] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedOffer && !bookingOffer) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setSelectedOffer(null);
+        setBookingOffer(null);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedOffer, bookingOffer]);
 
   useEffect(() => {
     fetchAirports()
@@ -466,12 +487,16 @@ export function SearchPage() {
         <div className={styles.list}>
           {offers.map((offer) => {
             const key = offer.offerId || `${offer.airlineCode}-${offer.flightNumber}-${offer.departAt}`;
+            const source = sourceLabel(offer.source);
             return (
               <article className={styles.card} key={key}>
                 <div className={styles.cardTop}>
                   <div>
                     <div className={styles.airline}>
-                      {offer.airline} · <span className="mono">{offer.flightNumber}</span>
+                      {offer.airline} · <span className="mono">{offer.flightNumber}</span>{' '}
+                      <span className={`${styles.sourceTag} ${source.simulated ? styles.sourceTagEstimated : ''}`}>
+                        {source.text}
+                      </span>
                     </div>
                     <div className={styles.cities}>
                       {offer.originCity} → {offer.destinationCity}
