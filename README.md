@@ -36,13 +36,13 @@ This is a systems project (workers, cache, GraphQL, scheduling). It is not a boo
 
 ### User flow
 
-1. **Search** — Browser sends route criteria to GraphQL (`searchFares`).
-2. **Multi-API poll** — API fans out (with bounded concurrency) to 30+ airline adapters + every configured search API.
-3. **Normalize / dedupe** — Responses map to one `Offer` shape; identical flights from multiple sources collapse to the cheapest.
-4. **Choose** — UI shows the offer list; user picks flights to follow.
-5. **Watch** — Save to a dashboard account, or create an email-only watch.
-6. **Track** — Scanner CronJob / `runScan` builds `routes × providers` jobs; workers share `RATE_LIMIT_PER_SEC`.
-7. **Alert** — On a drop under threshold, SMTP fires; dashboard shows watches, history, alerts.
+1. **Search** - Browser sends route criteria to GraphQL (`searchFares`).
+2. **Multi-API poll** - API fans out (with bounded concurrency) to 30+ airline adapters + every configured search API.
+3. **Normalize / dedupe** - Responses map to one `Offer` shape; identical flights from multiple sources collapse to the cheapest.
+4. **Choose** - UI shows the offer list; user picks flights to follow.
+5. **Watch** - Save to a dashboard account, or create an email-only watch.
+6. **Track** - Scanner CronJob / `runScan` builds `routes × providers` jobs; workers share `RATE_LIMIT_PER_SEC`.
+7. **Alert** - On a drop under threshold, SMTP fires; dashboard shows watches, history, alerts.
 
 ### Data path
 
@@ -59,7 +59,7 @@ This is a systems project (workers, cache, GraphQL, scheduling). It is not a boo
 
 | Store | Role |
 |-------|------|
-| **Redis** | Hot fare cache with TTL — airline adapters skip duplicate upstream calls |
+| **Redis** | Hot fare cache with TTL - airline adapters skip duplicate upstream calls |
 | **PostgreSQL** | System of record for users, selected watches, fare observations, alerts |
 
 ### Fare providers
@@ -144,16 +144,16 @@ cd frontend && npm install && npm run dev
 
 Manifests in `deploy/k8s/`:
 
-- `api-deployment.yaml` — GraphQL API
-- `web-deployment.yaml` — static React site
-- `scanner-cronjob.yaml` — fare scans every 15 minutes
-- `redis.yaml` — cache
-- `configmap.yaml` / `secret.example.yaml` — config
+- `api-deployment.yaml` - GraphQL API
+- `web-deployment.yaml` - static React site
+- `scanner-cronjob.yaml` - fare scans every 15 minutes
+- `redis.yaml` - cache
+- `configmap.yaml` / `secret.example.yaml` - config
 
 Point `DATABASE_URL` at RDS PostgreSQL and Redis at ElastiCache (or in-cluster Redis). Push images to ECR, apply CronJob for scheduled polling.
 
 ```bash
-# Tag with an explicit version (matching the deploy manifests) — never :latest,
+# Tag with an explicit version (matching the deploy manifests) - never :latest,
 # so rollouts are reproducible and rollback actually rolls back.
 docker build -t farewatch/api:1.0.0 ./backend
 docker build -t farewatch/web:1.0.0 \
@@ -172,13 +172,13 @@ kubectl apply -f deploy/k8s/
 
 | Variable | Purpose |
 |----------|---------|
-| `APP_ENV` | `development` (default) or `production` — gates GraphiQL, permissive localhost CORS, and the default-JWT-secret boot check |
+| `APP_ENV` | `development` (default) or `production` - gates GraphiQL, permissive localhost CORS, and the default-JWT-secret boot check |
 | `IGNAV_API_KEY` | Ignav live fare source |
 | `TRAVELPAYOUTS_TOKEN` | Free cached fare source |
 | `RAPIDAPI_KEY` | Sky Scrapper free-tier structured itinerary source |
 | `DATABASE_URL` | Postgres |
 | `REDIS_URL` | Redis |
-| `JWT_SECRET` | API token signing — the API refuses to boot with the default value when `APP_ENV=production` |
+| `JWT_SECRET` | API token signing - the API refuses to boot with the default value when `APP_ENV=production` |
 | `SMTP_*` | Outbound email for drop alerts |
 | `WORKER_COUNT` / `RATE_LIMIT_PER_SEC` | Scanner concurrency |
 | `CACHE_TTL_SECONDS` | Redis fare TTL |
