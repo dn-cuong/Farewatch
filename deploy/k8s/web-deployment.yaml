@@ -17,7 +17,9 @@ spec:
     spec:
       containers:
         - name: web
-          image: farewatch/web:latest
+          # Pin to an explicit, immutable tag per release (never :latest) so
+          # rollouts are reproducible and rollback actually rolls back.
+          image: farewatch/web:1.0.0
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
@@ -27,6 +29,12 @@ spec:
               port: 80
             initialDelaySeconds: 3
             periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
           resources:
             requests:
               cpu: 50m

@@ -155,8 +155,10 @@ Manifests in `deploy/k8s/`:
 Point `DATABASE_URL` at RDS PostgreSQL and Redis at ElastiCache (or in-cluster Redis). Push images to ECR, apply CronJob for scheduled polling.
 
 ```bash
-docker build -t farewatch/api:latest ./backend
-docker build -t farewatch/web:latest \
+# Tag with an explicit version (matching the deploy manifests) — never :latest,
+# so rollouts are reproducible and rollback actually rolls back.
+docker build -t farewatch/api:1.0.0 ./backend
+docker build -t farewatch/web:1.0.0 \
   --build-arg VITE_API_URL=https://api.example.com/graphql \
   ./frontend
 
@@ -172,15 +174,18 @@ kubectl apply -f deploy/k8s/
 
 | Variable | Purpose |
 |----------|---------|
+| `APP_ENV` | `development` (default) or `production` — gates GraphiQL, permissive localhost CORS, and the default-JWT-secret boot check |
 | `IGNAV_API_KEY` | Ignav live fare source |
 | `TRAVELPAYOUTS_TOKEN` | Free cached fare source |
 | `RAPIDAPI_KEY` | Sky Scrapper free-tier structured itinerary source |
 | `DATABASE_URL` | Postgres |
 | `REDIS_URL` | Redis |
-| `JWT_SECRET` | API token signing |
+| `JWT_SECRET` | API token signing — the API refuses to boot with the default value when `APP_ENV=production` |
 | `SMTP_*` | Outbound email for drop alerts |
 | `WORKER_COUNT` / `RATE_LIMIT_PER_SEC` | Scanner concurrency |
 | `CACHE_TTL_SECONDS` | Redis fare TTL |
+| `HTTP_RATE_LIMIT_PER_SEC` / `HTTP_RATE_LIMIT_BURST` | Per-IP throttle on the public `/graphql` endpoint |
+| `FARE_RETENTION_DAYS` | How long fare history rows are kept before the scanner prunes them |
 
 See `.env.example` for the full list.
 
