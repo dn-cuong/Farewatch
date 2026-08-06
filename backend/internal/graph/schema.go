@@ -1,13 +1,11 @@
 package graph
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/mail"
 	"strings"
-	"time"
 
 	"github.com/farewatch/farewatch/internal/airlines"
 	"github.com/farewatch/farewatch/internal/auth"
@@ -551,12 +549,9 @@ func NewSchema(
 						return nil, err
 					}
 					w.Route = route
-					// Detached scan so the HTTP request is not cancelled mid-poll.
-					go func() {
-						scanCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-						defer cancel()
-						_, _ = sc.Run(scanCtx)
-					}()
+					// Detached + coalesced: RequestScan will not spawn a
+					// second full scan if one is already in flight.
+					sc.RequestScan()
 					return asMap(w)
 				},
 			},
@@ -614,11 +609,7 @@ func NewSchema(
 						return nil, err
 					}
 					w.Route = route
-					go func() {
-						scanCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-						defer cancel()
-						_, _ = sc.Run(scanCtx)
-					}()
+					sc.RequestScan()
 					return asMap(w)
 				},
 			},

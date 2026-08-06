@@ -40,6 +40,7 @@ services:
     env_file:
       - .env
     environment:
+      APP_ENV: development
       PORT: "8080"
       DATABASE_URL: postgres://farewatch:farewatch@postgres:5432/farewatch?sslmode=disable
       REDIS_URL: redis://redis:6379/0

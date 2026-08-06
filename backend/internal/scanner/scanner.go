@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"log"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/farewatch/farewatch/internal/airlines"
@@ -16,13 +18,33 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+// minScanInterval bounds how often a full route×provider scan can run,
+// whether triggered by the CronJob, the dashboard's "Run scan" button, or a
+// newly created watch. Without it, concurrent createWatch/runScan calls each
+// spawn their own full scan and can pile up unbounded upstream requests.
+const minScanInterval = 10 * time.Second
+
+// alertCooldown prevents re-sending a drop email for the same watch when the
+// price has not meaningfully improved since the last alert (e.g. it wiggles
+// a cent below the previous alerted price every scan).
+const alertCooldown = 6 * time.Hour
+
 type Scanner struct {
 	cfg       config.Config
 	store     *store.Store
 	cache     *cache.Cache
 	mailer    *alerts.Mailer
 	providers []airlines.Provider
+
+	mu          sync.Mutex
+	running     bool
+	lastRunEnd  time.Time
+	rerunQueued bool
 }
+
+// ErrScanCooldown is returned when a scan is requested too soon after the
+// previous one finished (or one is already in flight).
+var ErrScanCooldown = errors.New("a scan is already running or just finished — try again shortly")
 
 func New(cfg config.Config, st *store.Store, c *cache.Cache, mailer *alerts.Mailer) *Scanner {
 	ignav := airlines.NewIgnav(cfg.IgnavAPIKey)
@@ -41,7 +63,14 @@ func New(cfg config.Config, st *store.Store, c *cache.Cache, mailer *alerts.Mail
 	}
 }
 
+// Run executes one full route×provider scan. Concurrent/rapid callers are
+// rejected with ErrScanCooldown instead of piling up overlapping scans.
 func (s *Scanner) Run(ctx context.Context) (*models.ScanStats, error) {
+	if err := s.claim(); err != nil {
+		return nil, err
+	}
+	defer s.release()
+
 	start := time.Now()
 	s.cache.ResetStats()
 
@@ -68,7 +97,77 @@ func (s *Scanner) Run(ctx context.Context) (*models.ScanStats, error) {
 	stats.DurationMs = time.Since(start).Milliseconds()
 	log.Printf("scan complete routes=%d fares=%d providers=%d cache_hit_rate=%.1f%% alerts=%d duration_ms=%d",
 		stats.RoutesScanned, stats.FaresFound, stats.AirlinesQueried, stats.CacheHitRate, stats.AlertsSent, stats.DurationMs)
+
+	go s.pruneStaleFares()
+
 	return stats, nil
+}
+
+func (s *Scanner) claim() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.running || time.Since(s.lastRunEnd) < minScanInterval {
+		return ErrScanCooldown
+	}
+	s.running = true
+	return nil
+}
+
+func (s *Scanner) release() {
+	s.mu.Lock()
+	s.running = false
+	s.lastRunEnd = time.Now()
+	s.mu.Unlock()
+}
+
+// RequestScan asks for an out-of-band scan, e.g. right after a watch is
+// created. Concurrent requests coalesce into a single trailing re-run
+// instead of each spawning their own full route×provider scan.
+func (s *Scanner) RequestScan() {
+	s.mu.Lock()
+	if s.running {
+		s.rerunQueued = true
+		s.mu.Unlock()
+		return
+	}
+	s.mu.Unlock()
+
+	go func() {
+		for {
+			scanCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+			if _, err := s.Run(scanCtx); err != nil && !errors.Is(err, ErrScanCooldown) {
+				log.Printf("triggered scan: %v", err)
+			}
+			cancel()
+
+			s.mu.Lock()
+			if !s.rerunQueued {
+				s.mu.Unlock()
+				return
+			}
+			s.rerunQueued = false
+			s.mu.Unlock()
+		}
+	}()
+}
+
+// pruneStaleFares deletes fare history past the configured retention window.
+// Runs detached from the scan's own context/timeout since it is best-effort
+// housekeeping, not part of the scan result.
+func (s *Scanner) pruneStaleFares() {
+	if s.cfg.FareRetention <= 0 {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	n, err := s.store.PruneFares(ctx, s.cfg.FareRetention)
+	if err != nil {
+		log.Printf("prune fares: %v", err)
+		return
+	}
+	if n > 0 {
+		log.Printf("pruned %d fare rows older than %s", n, s.cfg.FareRetention)
+	}
 }
 
 func (s *Scanner) runProviders(ctx context.Context, routes []models.Route, stats *models.ScanStats) {
@@ -113,7 +212,10 @@ func (s *Scanner) runProviders(ctx context.Context, routes []models.Route, stats
 				}
 				continue
 			}
-			if saved.Price < prev.Price {
+			// Never alert on synthetic data: simulator:* sources are a
+			// deterministic local fallback used when no live provider
+			// returned a normalizable fare, not a real market price.
+			if saved.Price < prev.Price && !strings.HasPrefix(saved.Source, "simulator:") {
 				n, err := s.maybeAlert(ctx, saved, prev.Price)
 				if err != nil {
 					log.Printf("alert: %v", err)
@@ -161,6 +263,15 @@ func (s *Scanner) maybeAlert(ctx context.Context, fare *models.Fare, oldPrice fl
 		if !hitTarget && !hitDrop {
 			continue
 		}
+
+		if last, err := s.store.LastAlertForWatch(ctx, w.ID); err == nil {
+			if time.Since(last.SentAt) < alertCooldown && last.NewPrice <= fare.Price {
+				continue // already alerted at an equal-or-better price recently
+			}
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			log.Printf("last alert lookup: %v", err)
+		}
+
 		detectAt := time.Now()
 		elapsed, err := s.mailer.SendDropAlert(alerts.DropEmail{
 			To: w.Email, Origin: route.Origin, Destination: route.Destination, DepartDate: route.DepartDate,
