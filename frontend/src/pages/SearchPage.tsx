@@ -44,6 +44,10 @@ function stopsLabel(stops: number, layovers: string[]) {
   return `${stops} stop${stops > 1 ? 's' : ''}`;
 }
 
+function offerKey(offer: FlightOffer) {
+  return offer.offerId || `${offer.airlineCode}-${offer.flightNumber}-${offer.departAt}`;
+}
+
 function sourceLabel(source: string): { text: string; simulated: boolean } {
   if (!source) return { text: 'Unknown source', simulated: false };
   const [kind, name] = source.split(':', 2);
@@ -222,7 +226,7 @@ export function SearchPage() {
       return;
     }
 
-    setSelecting(offer.offerId || offer.flightNumber);
+    setSelecting(offerKey(offer));
     setError(null);
     try {
       await createWatch({
@@ -486,8 +490,9 @@ export function SearchPage() {
 
         <div className={styles.list}>
           {offers.map((offer) => {
-            const key = offer.offerId || `${offer.airlineCode}-${offer.flightNumber}-${offer.departAt}`;
+            const key = offerKey(offer);
             const source = sourceLabel(offer.source);
+            const isSelecting = selecting === key;
             return (
               <article className={styles.card} key={key}>
                 <div className={styles.cardTop}>
@@ -556,8 +561,8 @@ export function SearchPage() {
                 )}
 
                 <div className={styles.cardActions}>
-                  <button className="btn btn-primary" type="button" disabled={!!selecting} onClick={() => onSelect(offer)}>
-                    {selecting === (offer.offerId || offer.flightNumber)
+                  <button className="btn btn-primary" type="button" disabled={isSelecting} onClick={() => onSelect(offer)}>
+                    {isSelecting
                       ? 'Saving…'
                       : user
                         ? 'Watch this flight'
