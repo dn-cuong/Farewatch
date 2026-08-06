@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"github.com/farewatch/farewatch/internal/cache"
 	"github.com/farewatch/farewatch/internal/config"
 	"github.com/farewatch/farewatch/internal/graph"
+	"github.com/farewatch/farewatch/internal/ratelimit"
 	"github.com/farewatch/farewatch/internal/scanner"
 	"github.com/farewatch/farewatch/internal/store"
 	"github.com/go-chi/chi/v5"
@@ -27,6 +29,10 @@ import (
 func main() {
 	_ = godotenv.Load()
 	cfg := config.Load()
+
+	if cfg.IsProduction() && cfg.JWTSecret == config.DefaultJWTSecret {
+		log.Fatal("refusing to start in production with the default JWT_SECRET — set a strong secret")
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -59,8 +65,14 @@ func main() {
 	gh := handler.New(&handler.Config{
 		Schema:   &schema,
 		Pretty:   true,
-		GraphiQL: true,
+		GraphiQL: !cfg.IsProduction(),
 	})
+
+	corsOrigins := []string{cfg.FrontendOrigin}
+	if !cfg.IsProduction() {
+		// Convenience origins for local dev only — never trust localhost in prod.
+		corsOrigins = append(corsOrigins, "http://localhost:5173", "http://localhost:3000", "http://localhost")
+	}
 
 	r := chi.NewRouter()
 	r.Use(chimw.RequestID)
@@ -69,24 +81,49 @@ func main() {
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Timeout(90 * time.Second))
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{cfg.FrontendOrigin, "http://localhost:5173", "http://localhost:3000", "http://localhost"},
+		AllowedOrigins:   corsOrigins,
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
 	}))
 	r.Use(authSvc.Middleware)
 
-	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
+	r.Get("/healthz", func(w http.ResponseWriter, req *http.Request) {
+		hctx, hcancel := context.WithTimeout(req.Context(), 2*time.Second)
+		defer hcancel()
+		dbErr := st.Ping(hctx)
+		cacheErr := c.Ping(hctx)
+
 		w.Header().Set("Content-Type", "application/json")
+		if dbErr != nil || cacheErr != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"status":   "degraded",
+				"service":  "farewatch-api",
+				"postgres": errStatus(dbErr),
+				"redis":    errStatus(cacheErr),
+			})
+			return
+		}
 		_, _ = w.Write([]byte(`{"status":"ok","service":"farewatch-api"}`))
 	})
-	r.Handle("/graphql", gh)
-	r.Handle("/graphiql", gh)
+
+	limiter := ratelimit.New(cfg.HTTPRateLimitPerSec, cfg.HTTPRateLimitBurst)
+	r.Group(func(gr chi.Router) {
+		gr.Use(limiter.Middleware)
+		gr.Handle("/graphql", gh)
+		if !cfg.IsProduction() {
+			gr.Handle("/graphiql", gh)
+		}
+	})
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
 		Handler:           r,
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      100 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	go func() {
@@ -103,4 +140,11 @@ func main() {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 	_ = srv.Shutdown(shutdownCtx)
+}
+
+func errStatus(err error) string {
+	if err == nil {
+		return "ok"
+	}
+	return err.Error()
 }

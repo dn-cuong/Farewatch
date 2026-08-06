@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/farewatch/farewatch/internal/models"
@@ -32,6 +33,11 @@ func New(ctx context.Context, databaseURL string) (*Store, error) {
 }
 
 func (s *Store) Close() { s.pool.Close() }
+
+// Ping checks Postgres connectivity for health checks.
+func (s *Store) Ping(ctx context.Context) error {
+	return s.pool.Ping(ctx)
+}
 
 func (s *Store) Migrate(ctx context.Context) error {
 	stmts := []string{
@@ -553,6 +559,35 @@ func (s *Store) InsertAlert(ctx context.Context, a models.Alert) (*models.Alert,
 		return nil, err
 	}
 	return &a, nil
+}
+
+// LastAlertForWatch returns the most recently sent alert for a watch, if any.
+// Used to cool down repeat drop emails when a price hovers near a threshold.
+func (s *Store) LastAlertForWatch(ctx context.Context, watchID string) (*models.Alert, error) {
+	var a models.Alert
+	err := s.pool.QueryRow(ctx, `
+		SELECT id, watch_id, fare_id, old_price::float8, new_price::float8, airline, sent_at, delivered_in_ms
+		FROM alerts
+		WHERE watch_id = $1
+		ORDER BY sent_at DESC
+		LIMIT 1
+	`, watchID).Scan(&a.ID, &a.WatchID, &a.FareID, &a.OldPrice, &a.NewPrice, &a.Airline, &a.SentAt, &a.DeliveredIn)
+	if err != nil {
+		return nil, err
+	}
+	return &a, nil
+}
+
+// PruneFares deletes fare observations older than retention. Fare history is
+// append-only per scan, so without this the table grows without bound.
+func (s *Store) PruneFares(ctx context.Context, retention time.Duration) (int64, error) {
+	ct, err := s.pool.Exec(ctx, `
+		DELETE FROM fares WHERE observed_at < NOW() - ($1 || ' seconds')::interval
+	`, strconv.FormatInt(int64(retention.Seconds()), 10))
+	if err != nil {
+		return 0, err
+	}
+	return ct.RowsAffected(), nil
 }
 
 func (s *Store) ListAlertsForUser(ctx context.Context, userID string, limit int) ([]models.Alert, error) {

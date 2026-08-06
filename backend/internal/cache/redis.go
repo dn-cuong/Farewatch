@@ -34,6 +34,11 @@ func New(redisURL string, ttl time.Duration) (*Cache, error) {
 
 func (c *Cache) Close() error { return c.client.Close() }
 
+// Ping checks Redis connectivity for health checks.
+func (c *Cache) Ping(ctx context.Context) error {
+	return c.client.Ping(ctx).Err()
+}
+
 func fareKey(routeID, airlineCode string) string {
 	return fmt.Sprintf("fare:%s:%s", routeID, airlineCode)
 }
