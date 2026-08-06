@@ -36,6 +36,8 @@ This is a systems project (workers, cache, GraphQL, scheduling). It is not a boo
 
 ## Architecture
 
+![FareWatch system architecture](docs/architecture.png)
+
 ### User flow
 
 1. **Search** — Browser sends route criteria to GraphQL (`searchFares`).
