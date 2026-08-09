@@ -1,3 +1,5 @@
+# Optional in-cluster Redis fallback for local/minikube.
+# Production AWS demo uses ElastiCache instead - up.sh does NOT apply this file.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

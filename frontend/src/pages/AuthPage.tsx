@@ -46,7 +46,6 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
       setCompleting(false);
       setError(err instanceof Error ? err.message : 'Could not start watch');
     });
-    // intentionally run once when an already-signed-in user lands with a pending selection
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, user, fromWatch]);
 
@@ -88,7 +87,19 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
       setUser(u);
       await finishAuth();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Google sign-in failed');
+      const code =
+        err && typeof err === 'object' && 'code' in err
+          ? String((err as { code?: string }).code ?? '')
+          : '';
+      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+        setError('Google popup was closed before sign-in finished. Try again.');
+      } else if (code === 'auth/unauthorized-domain') {
+        setError('This domain is not allowed in Firebase Auth settings (add localhost).');
+      } else if (code === 'auth/operation-not-allowed') {
+        setError('Google sign-in is not enabled yet in Firebase Console → Authentication.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Google sign-in failed');
+      }
     } finally {
       setBusy(false);
     }
@@ -113,7 +124,7 @@ export function AuthPage({ mode }: { mode: 'login' | 'register' }) {
               {pending
                 ? `Almost there. We’ll start watching ${pending.airline} ${pending.flightNumber} (${pending.origin} → ${pending.destination}) after you ${mode === 'register' ? 'register' : 'sign in'}.`
                 : mode === 'register'
-                  ? 'Save the trips you care about and get a calm email when fares drop.'
+                  ? 'Save trips you care about and get an email when fares drop.'
                   : 'Sign in to see the routes you’re watching.'}
             </p>
 

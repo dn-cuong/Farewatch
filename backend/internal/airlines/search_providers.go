@@ -33,7 +33,7 @@ func (p *IgnavSearchProvider) Fetch(ctx context.Context, origin, dest, departDat
 	out := make([]Offer, 0, len(offers))
 	for _, o := range offers {
 		if cabin != "" && !strings.EqualFold(o.Cabin, cabin) && o.Cabin != "" {
-			// Keep offers; cabin filters are soft — Ignav may use different labels.
+			// Keep offers; cabin filters are soft - Ignav may use different labels.
 		}
 		o.Source = "search:ignav"
 		out = append(out, o)
@@ -41,8 +41,7 @@ func (p *IgnavSearchProvider) Fetch(ctx context.Context, origin, dest, departDat
 	return out, nil
 }
 
-// GoogleFlightsSearchProvider best-effort polls Google Flights' public search surface.
-// Parsing is intentionally soft: bot walls / opaque HTML yield an empty result, not a hard failure for the whole scan.
+// GoogleFlightsSearchProvider polls Google Flights HTML; empty parse returns no offers.
 type GoogleFlightsSearchProvider struct {
 	client *http.Client
 }
@@ -78,7 +77,7 @@ func (p *GoogleFlightsSearchProvider) Fetch(ctx context.Context, origin, dest, d
 
 	price, ok := extractPublicPrice(body)
 	if !ok {
-		// Soft miss — Google often serves JS shells without fares.
+		// Soft miss - Google often serves JS shells without fares.
 		return nil, fmt.Errorf("google flights: no parseable fare")
 	}
 

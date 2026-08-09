@@ -7,8 +7,7 @@ import (
 	"time"
 )
 
-// DefaultJWTSecret is the insecure dev fallback. Production boots must
-// override JWT_SECRET — see (Config).IsProduction and its use in cmd/api.
+// Dev fallback for JWT_SECRET. Override in production.
 const DefaultJWTSecret = "farewatch-dev-secret-change-me"
 
 type Config struct {
@@ -69,8 +68,7 @@ func Load() Config {
 	}
 }
 
-// IsProduction reports whether APP_ENV names a production-like environment.
-// Gates GraphiQL, permissive localhost CORS, and the default JWT secret.
+// IsProduction is true when APP_ENV is production/prod.
 func (c Config) IsProduction() bool {
 	return strings.EqualFold(c.Env, "production") || strings.EqualFold(c.Env, "prod")
 }

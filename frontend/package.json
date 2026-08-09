@@ -2,7 +2,7 @@
   "name": "farewatch-web",
   "private": true,
   "version": "1.0.0",
-  "description": "FareWatch web client — watch routes, fare history, and drop alerts",
+  "description": "FareWatch web client - watch routes, fare history, and drop alerts",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -50,7 +50,7 @@ Now: $%.2f (%.1f%% lower)
 
 Book: %s
 
-— FareWatch
+- FareWatch
 `, msg.Origin, msg.Destination, msg.DepartDate, msg.Airline, msg.OldPrice, msg.NewPrice, dropPct, msg.DeepLink)
 
 	raw := strings.Join([]string{

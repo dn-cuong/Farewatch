@@ -65,8 +65,6 @@ func fareFromOffer(routeID string, o airlines.Offer, cached bool) models.Fare {
 }
 
 func (p *Pool) Run(ctx context.Context, jobs []Job) []Result {
-	// A new Pool (and ticker) is created per scan — stop it here so repeated
-	// scans over the app's lifetime don't leak one ticker goroutine each.
 	defer p.ticker.Stop()
 
 	jobCh := make(chan Job, len(jobs))
@@ -83,7 +81,7 @@ func (p *Pool) Run(ctx context.Context, jobs []Job) []Result {
 					continue
 				}
 				// Airline adapters cache a single quote per route+provider.
-				// Search APIs return many offers — skip single-slot cache for them.
+				// Search APIs return many offers - skip single-slot cache for them.
 				if job.Provider.Kind() == "airline" {
 					if fare, ok, err := p.cache.GetFare(ctx, job.Route.ID, job.Provider.Code()); err == nil && ok {
 						resCh <- Result{

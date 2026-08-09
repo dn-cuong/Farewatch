@@ -1,133 +1,59 @@
 # FareWatch
 
-Web app for flight fare tracking. Users search a route, review offers from **30+ global airline pricing adapters** and search aggregators, pick itineraries to watch, and get emailed when those fares drop.
+## Overview
 
-| Piece | Role |
-|-------|------|
-| React web app | Search routes, pick offers to watch, board + history + alerts |
-| GraphQL API (Go) | Auth, multi-provider search, watches, scan trigger |
-| 30+ airline adapters | Per-carrier HTTP pricing clients across North America, Europe, Asia-Pacific, the Middle East, and Africa |
-| Search APIs | Ignav, Travelpayouts, Sky Scrapper (RapidAPI), and Google Flights probe |
-| Scanner CronJob | Rate-limited goroutine pool re-polls watched routes |
-| Redis | Short-TTL fare cache (cut redundant upstream calls) |
-| PostgreSQL | Users, watches, offer history, alerts |
-| SMTP | Drop alerts to an account or email-only watch |
+FareWatch is a flight price tracker. Search a route, watch a fare, and get an email when the price drops.
 
-**Targets:** concurrently poll 10+ airline/search providers without stampeding upstreams, normalize + dedupe quotes, measure Redis cache hit rate, email on detected drops. Local stack is Docker Compose; cloud shape is EKS Deployments + CronJob, RDS, ElastiCache.
+The React UI talks to a Go GraphQL API. A rate-limited worker pool polls airline adapters and optional search providers, caches recent quotes in Redis, and stores price history in PostgreSQL. Locally everything runs via Docker Compose. Production can sit on AWS (EKS, RDS, ElastiCache, ALB) with a Kubernetes CronJob for scheduled scans.
 
----
+## Tech Stack
 
-## Problem
+| Group | Skills |
+|------|--------|
+| Languages | ![Go](https://img.shields.io/badge/Go-00ADD8?style=for-the-badge&logo=go&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white) ![JavaScript](https://img.shields.io/badge/JavaScript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E) ![SQL](https://img.shields.io/badge/SQL-4479A1?style=for-the-badge&logo=postgresql&logoColor=white) ![HTML5](https://img.shields.io/badge/HTML5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white) ![CSS3](https://img.shields.io/badge/CSS3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white) |
+| Frameworks & Libraries | ![React](https://img.shields.io/badge/React-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white) ![GraphQL](https://img.shields.io/badge/GraphQL-E10098?style=for-the-badge&logo=graphql&logoColor=white) ![Nginx](https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white) ![NodeJS](https://img.shields.io/badge/Node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white) |
+| Databases & Cloud | ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white) ![Redis](https://img.shields.io/badge/Redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white) ![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white) ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=for-the-badge&logo=firebase&logoColor=black) |
+| Tools & DevOps | ![Docker](https://img.shields.io/badge/Docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white) ![Kubernetes](https://img.shields.io/badge/Kubernetes-%23326ce5.svg?style=for-the-badge&logo=kubernetes&logoColor=white) ![Terraform](https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white) ![Git](https://img.shields.io/badge/Git-%23F05033.svg?style=for-the-badge&logo=git&logoColor=white) ![GitHub](https://img.shields.io/badge/GitHub-%23121011.svg?style=for-the-badge&logo=github&logoColor=white) ![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black) |
 
-Fare pages change constantly. Checking ten airlines by hand does not scale, and naive concurrent scrapers get rate-limited or duplicate the same itinerary across sources.
+## System Architecture
 
-FareWatch separates **discovery** from **tracking**:
+![FareWatch System Architecture](docs/architecture.png)
 
-1. User searches origin → destination + date
-2. GraphQL concurrently polls airline + search providers, **normalizes** to a common `Offer`, then **dedupes** by flight fingerprint (keep cheapest)
-3. User selects which offers to watch and sets a target price
-4. A scanner CronJob re-polls only active watches through a **rate-limited worker pool**
-5. Recent airline quotes hit Redis when still fresh; every observation lands in Postgres
-6. Crossing a watch threshold sends SMTP mail and records delivery latency
+## Run locally
 
-This is a systems project (workers, cache, GraphQL, scheduling). It is not a booking OTA and does not issue tickets.
+**Requires:** [Docker Desktop](https://www.docker.com/products/docker-desktop/)
 
----
-
-### User flow
-
-1. **Search** - Browser sends route criteria to GraphQL (`searchFares`).
-2. **Multi-API poll** - API fans out (with bounded concurrency) to 30+ airline adapters + every configured search API.
-3. **Normalize / dedupe** - Responses map to one `Offer` shape; identical flights from multiple sources collapse to the cheapest.
-4. **Choose** - UI shows the offer list; user picks flights to follow.
-5. **Watch** - Save to a dashboard account, or create an email-only watch.
-6. **Track** - Scanner CronJob / `runScan` builds `routes × providers` jobs; workers share `RATE_LIMIT_PER_SEC`.
-7. **Alert** - On a drop under threshold, SMTP fires; dashboard shows watches, history, alerts.
-
-### Data path
-
-| Hop | What happens |
-|-----|----------------|
-| Browser → GraphQL | HTTPS `/graphql`, JWT auth |
-| GraphQL → providers | Concurrent airline + search API fetches |
-| GraphQL → Postgres | Users, watches, immutable fare rows, alerts |
-| GraphQL / Scanner → Redis | Hot fare cache with TTL (per airline provider) |
-| Scanner → worker pool | Rate-limited goroutines poll every provider for watched routes |
-| Scanner → SMTP | Email when a watched fare drops |
-
-### Why Redis + Postgres
-
-| Store | Role |
-|-------|------|
-| **Redis** | Hot fare cache with TTL - airline adapters skip duplicate upstream calls |
-| **PostgreSQL** | System of record for users, selected watches, fare observations, alerts |
-
-### Fare providers
-
-| Kind | Providers |
-|------|-----------|
-| **Airline adapters** | 32 major carriers including Delta, United, Air France, Lufthansa, Emirates, Qatar, Singapore, Cathay, Qantas, ANA, JAL, Korean Air, Turkish, Air India, Ethiopian, and others. Each tries that carrier's public search surface; failures are explicitly tagged `simulator:*` |
-| **Search APIs** | Ignav, free Travelpayouts cached fares, free-tier Sky Scrapper/RapidAPI, Google Flights probe, and legacy Amadeus when configured |
-
-Sources are tagged (`airline:DL`, `search:ignav`, …) so you can see which adapter won after dedupe.
-
----
-
-## Layout
-
-| Path | Role |
-|------|------|
-| `backend/cmd/api` | GraphQL HTTP server |
-| `backend/cmd/scanner` | One-shot scanner (CronJob entrypoint) |
-| `backend/internal/airlines` | 32 global airline adapters + Ignav/Google/Travelpayouts/Sky Scrapper + normalize/dedupe |
-| `backend/internal/worker` | Rate-limited goroutine pool |
-| `backend/internal/cache` | Redis fare cache |
-| `backend/internal/store` | Postgres migrations + queries |
-| `backend/internal/scanner` | Scan orchestration + alerts |
-| `backend/internal/graph` | GraphQL schema |
-| `backend/internal/auth` | JWT (+ optional Firebase token verify) |
-| `frontend/` | React + TypeScript (Vite) UI |
-| `deploy/k8s/` | Namespace, API/web Deployments, Redis, scanner CronJob |
-| `docker-compose.yml` | Local full stack |
-
----
-
-## GraphQL surface
-
-| Op | Purpose |
-|----|---------|
-| `register` / `login` | Email+password → JWT |
-| `loginWithFirebase` | Optional Google ID token → JWT |
-| `searchFares` | Live route search → multi-airline offer list (public) |
-| `createWatch` | Persist a user-selected offer + threshold (auth) |
-| `createEmailWatch` | Create an email-only alert without an account |
-| `myWatches` | Dashboard rows + `latestFare` |
-| `fares(routeId)` | Price history for charts |
-| `runScan` | On-demand re-poll of watched routes |
-| `myAlerts` | Recent email alert receipts |
-| `removeWatch` | Stop tracking a selection |
-
----
-
-## Local
-
-Needs Docker Desktop. Copy env and start:
+1. Copy env and start the stack:
 
 ```bash
 cp .env.example .env
-# Add one or more free source keys (Ignav, Travelpayouts, RapidAPI)
 make up
 ```
 
+2. Open the app:
+
 | Service | URL |
 |---------|-----|
-| Website | http://localhost:3000 |
-| GraphQL / GraphiQL | http://localhost:8080/graphql |
+| App | http://localhost:3000 |
+| GraphQL | http://localhost:8080/graphql |
+
+3. Useful commands:
 
 ```bash
-make scan    # run scanner once
-make logs    # follow api + web
-make down    # stop stack
+make logs   # follow api + web
+make scan   # one scanner pass
+make down   # stop stack
+```
+
+Optional keys in `.env` (Ignav, Travelpayouts, RapidAPI, Firebase, SMTP) unlock live providers, Google sign-in, and email alerts. Without them the stack still runs with simulator fallbacks.
+
+### Google sign-in (optional)
+
+Set `FIREBASE_PROJECT_ID` and `VITE_FIREBASE_*` in `.env`, enable the Google provider in Firebase Console, then:
+
+```bash
+make firebase-env   # or edit .env by hand
+make up
 ```
 
 ### Dev without rebuilding images
@@ -138,79 +64,29 @@ cd backend && go run ./cmd/api
 cd frontend && npm install && npm run dev
 ```
 
----
+## Layout
 
-## Kubernetes / EKS
-
-Manifests in `deploy/k8s/`:
-
-- `api-deployment.yaml` - GraphQL API
-- `web-deployment.yaml` - static React site
-- `scanner-cronjob.yaml` - fare scans every 15 minutes
-- `redis.yaml` - cache
-- `configmap.yaml` / `secret.example.yaml` - config
-
-Point `DATABASE_URL` at RDS PostgreSQL and Redis at ElastiCache (or in-cluster Redis). Push images to ECR, apply CronJob for scheduled polling.
-
-```bash
-# Tag with an explicit version (matching the deploy manifests) - never :latest,
-# so rollouts are reproducible and rollback actually rolls back.
-docker build -t farewatch/api:1.0.0 ./backend
-docker build -t farewatch/web:1.0.0 \
-  --build-arg VITE_API_URL=https://api.example.com/graphql \
-  ./frontend
-
-kubectl apply -f deploy/k8s/namespace.yaml
-cp deploy/k8s/secret.example.yaml deploy/k8s/secret.yaml
-# edit secret.yaml
-kubectl apply -f deploy/k8s/
+```
+backend/cmd/api            GraphQL server
+backend/cmd/scanner        one-shot scanner (CronJob entrypoint)
+backend/internal/airlines  airline + search providers
+backend/internal/worker    rate-limited pool
+backend/internal/cache     Redis
+backend/internal/store     Postgres
+frontend/                  React UI (Nginx in production image)
+deploy/k8s/                Kubernetes manifests
+deploy/terraform/          AWS (EKS, RDS, ElastiCache, ECR)
 ```
 
----
+## AWS deploy (optional)
 
-## Configuration
+Uses CLI profile `farewatch`. Tear down when finished to stop billing.
 
-| Variable | Purpose |
-|----------|---------|
-| `APP_ENV` | `development` (default) or `production` - gates GraphiQL, permissive localhost CORS, and the default-JWT-secret boot check |
-| `IGNAV_API_KEY` | Ignav live fare source |
-| `TRAVELPAYOUTS_TOKEN` | Free cached fare source |
-| `RAPIDAPI_KEY` | Sky Scrapper free-tier structured itinerary source |
-| `DATABASE_URL` | Postgres |
-| `REDIS_URL` | Redis |
-| `JWT_SECRET` | API token signing - the API refuses to boot with the default value when `APP_ENV=production` |
-| `SMTP_*` | Outbound email for drop alerts |
-| `WORKER_COUNT` / `RATE_LIMIT_PER_SEC` | Scanner concurrency |
-| `CACHE_TTL_SECONDS` | Redis fare TTL |
-| `HTTP_RATE_LIMIT_PER_SEC` / `HTTP_RATE_LIMIT_BURST` | Per-IP throttle on the public `/graphql` endpoint |
-| `FARE_RETENTION_DAYS` | How long fare history rows are kept before the scanner prunes them |
+```bash
+./deploy/scripts/setup-aws-profile.sh   # once
+export AWS_PROFILE=farewatch
+./deploy/scripts/up.sh
+./deploy/scripts/down.sh
+```
 
-See `.env.example` for the full list.
-
----
-
-## License
-
-Copyright (c) 2026 FareWatch contributors
-
-FareWatch is open source software licensed under the [MIT License](LICENSE).
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-`SPDX-License-Identifier: MIT`
+See `.env.example` for config. MIT licensed - see [LICENSE](LICENSE).

@@ -12,9 +12,7 @@ import (
 	"time"
 )
 
-// AirlineAPI is one airline pricing adapter polled by the worker pool.
-// It first hits that carrier's public search/pricing HTTP endpoint (best-effort),
-// then falls back to the deterministic simulator so local scans always work.
+// AirlineAPI tries the carrier HTTP search page, then falls back to the simulator.
 type AirlineAPI struct {
 	sim    *airlineProvider
 	client *http.Client
@@ -78,8 +76,7 @@ func (a *AirlineAPI) fetchLive(ctx context.Context, origin, dest, departDate str
 		return nil, fmt.Errorf("%s: no parseable fare in response", a.Code())
 	}
 
-	// The public carrier page exposes only a visible fare, not a machine-readable itinerary.
-	// Do not synthesize flight details from the simulator and label them as live data.
+	// Price alone isn't enough to build a real itinerary.
 	return nil, fmt.Errorf("%s: price-only response cannot be normalized safely", a.Code())
 }
 

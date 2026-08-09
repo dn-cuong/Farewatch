@@ -51,7 +51,10 @@ func (s *Service) VerifyFirebaseToken(ctx context.Context, idToken, projectID st
 		}
 		return key, nil
 	}, jwt.WithAudience(projectID), jwt.WithIssuer("https://securetoken.google.com/"+projectID))
-	if err != nil || !parsed.Valid {
+	if err != nil {
+		return nil, fmt.Errorf("invalid firebase token: %w", err)
+	}
+	if !parsed.Valid {
 		return nil, errors.New("invalid firebase token")
 	}
 	claims, ok := parsed.Claims.(jwt.MapClaims)
@@ -64,7 +67,10 @@ func (s *Service) VerifyFirebaseToken(ctx context.Context, idToken, projectID st
 	}
 	email, _ := claims["email"].(string)
 	name, _ := claims["name"].(string)
-	if uid == "" || email == "" {
+	if uid == "" {
+		return nil, errors.New("firebase token missing user id")
+	}
+	if email == "" {
 		return nil, errors.New("firebase token missing email")
 	}
 	if name == "" {

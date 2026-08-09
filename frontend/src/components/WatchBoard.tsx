@@ -21,16 +21,16 @@ function changeClass(change?: number | null) {
 }
 
 function formatChange(change?: number | null) {
-  if (change == null) return '—';
+  if (change == null) return '-';
   if (change === 0) return '0.0%';
   const sign = change > 0 ? '+' : '';
   return `${sign}${change.toFixed(1)}%`;
 }
 
 function formatTime(iso?: string) {
-  if (!iso) return '—';
+  if (!iso) return '-';
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
+  if (Number.isNaN(d.getTime())) return '-';
   return d.toLocaleString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -40,7 +40,7 @@ function formatTime(iso?: string) {
 }
 
 function durationLabel(mins?: number) {
-  if (!mins) return '—';
+  if (!mins) return '-';
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return `${h}h ${m.toString().padStart(2, '0')}m`;
@@ -52,9 +52,9 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
       <div className={`panel ${styles.board}`}>
         <div className="panel-head">
           <h2>Your watches</h2>
-          <span>Gathering</span>
+          <span>Loading</span>
         </div>
-        <LoadingState title="Loading dashboard" message="Fetching your notified routes…" />
+        <LoadingState title="Loading watches" message="Fetching your watchlist…" />
       </div>
     );
   }
@@ -105,7 +105,7 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
     <div className={`panel ${styles.board}`}>
       <div className="panel-head">
         <h2>Your watches</h2>
-        <span className="mono">{watches.length} notifying</span>
+        <span className="mono">{watches.length} watches</span>
       </div>
 
       <div className={styles.desktop}>
@@ -139,7 +139,7 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
                       <span>{w.route?.destination ?? f?.destination}</span>
                     </div>
                     <div className={styles.cities}>
-                      {f ? `${f.originCity} — ${f.destinationCity}` : w.route?.departDate}
+                      {f ? `${f.originCity} - ${f.destinationCity}` : w.route?.departDate}
                       {w.targetPrice != null ? ` · alert ≤ ${formatPrice(w.targetPrice, f?.currency ?? 'USD')}` : ''}
                     </div>
                   </td>
@@ -150,7 +150,7 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
                         ? `${f.airline} · ${f.aircraft} · ${f.stops === 0 ? 'Nonstop' : `${f.stops} stop`}`
                         : w.airlineCode
                           ? `${w.airlineCode}${w.targetPrice != null ? ` · alert ≤ ${formatPrice(w.targetPrice)}` : ''}`
-                          : '—'}
+                          : '-'}
                     </div>
                   </td>
                   <td>
@@ -215,7 +215,7 @@ export function WatchBoard({ watches, selectedId, onSelect, onRemove, status = '
                     <span>{w.route?.destination}</span>
                   </div>
                   <div className={styles.cities}>
-                    {f?.flightNumber ?? 'Scanning…'} · {f?.airline ?? '—'}
+                    {f?.flightNumber ?? 'Scanning…'} · {f?.airline ?? '-'}
                   </div>
                 </div>
                   {f ? <span className={styles.price}>{formatPrice(f.price, f.currency)}</span> : null}

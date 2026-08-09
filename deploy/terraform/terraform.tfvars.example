@@ -1,0 +1,4 @@
+# Copy to terraform.tfvars (gitignored) if you need overrides.
+aws_region  = "us-east-1"
+aws_profile = "farewatch"
+cluster_name = "farewatch-demo"

@@ -45,7 +45,7 @@ export function loadPendingWatch(): PendingWatch | null {
   try {
     const parsed: unknown = JSON.parse(raw);
     // Data we wrote ourselves in a prior session, but the shape can drift
-    // across deploys — validate before trusting it instead of a blind cast.
+    // across deploys - validate before trusting it instead of a blind cast.
     if (!isPendingWatch(parsed)) {
       sessionStorage.removeItem(PENDING_KEY);
       return null;

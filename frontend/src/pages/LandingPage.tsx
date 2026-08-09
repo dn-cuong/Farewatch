@@ -44,7 +44,7 @@ export function LandingPage() {
             <span className="brand-mark">Fw</span>
             <div>
               <div className="brand-name">FareWatch</div>
-              <div className="brand-tag">Quiet fare tracking</div>
+              <div className="brand-tag">Flight fare alerts</div>
             </div>
           </div>
           <div className="topbar-actions">
@@ -67,24 +67,24 @@ export function LandingPage() {
 
         <section className={styles.hero}>
           <div className={styles.copy}>
-            <div className={styles.eyebrow}>Flight fares, gently watched</div>
-            <h1>Stop refreshing. Start being told.</h1>
+            <div className={styles.eyebrow}>Fare tracking</div>
+            <h1>Watch a flight. Get emailed when it drops.</h1>
             <p className={styles.lead}>
-              FareWatch keeps an eye on the trips you actually care about — and emails you the moment
-              a fare softens to your number. No noise. No dashboards you have to babysit.
+              Search a route, pick the itinerary you want, and FareWatch will check prices and email
+              you when it hits your target.
             </p>
             <div className={styles.cta}>
-              <Link className="btn btn-primary" to={user ? '/search' : '/search'}>
+              <Link className="btn btn-primary" to="/search">
                 {user ? 'Search flights' : 'Search a route'}
               </Link>
               <Link className="btn btn-outline" to={user ? '/dashboard' : '/login'}>
-                {user ? 'Open my watches' : 'I already have an account'}
+                {user ? 'Open my watches' : 'Sign in'}
               </Link>
             </div>
             <div className={styles.trust}>
-              <span>Email alerts you control</span>
-              <span>Only the routes you choose</span>
-              <span>Cancel a watch anytime</span>
+              <span>Email alerts</span>
+              <span>Only routes you choose</span>
+              <span>Remove a watch anytime</span>
             </div>
           </div>
 
@@ -108,47 +108,39 @@ export function LandingPage() {
                 </article>
               ))}
               <div className={styles.noteCard}>
-                <strong>A calm little ping</strong>
-                <p>
-                  “Your Boston → London fare dipped under $500.” That’s the whole product — the right
-                  note, at the right time.
-                </p>
+                <strong>Example alert</strong>
+                <p>“Your Boston → London fare dropped under $500.”</p>
               </div>
             </div>
           </div>
         </section>
 
         <section className={styles.section}>
-          <h2>How it feels to use</h2>
-          <p className={styles.sectionLead}>
-            Three quiet steps. No hunting through airline apps every morning.
-          </p>
+          <h2>How it works</h2>
+          <p className={styles.sectionLead}>Three steps.</p>
           <div className={styles.steps}>
             <article className={styles.step}>
               <div className={styles.stepNum}>1</div>
-              <h3>Search the trip</h3>
-              <p>See the real options — airline, flight number, schedule, and layovers.</p>
+              <h3>Search</h3>
+              <p>Compare airlines, flight numbers, times, and stops.</p>
             </article>
             <article className={styles.step}>
               <div className={styles.stepNum}>2</div>
-              <h3>Pick the one you want</h3>
-              <p>Choose the itinerary worth watching, then create an account to start tracking.</p>
+              <h3>Watch</h3>
+              <p>Save the itinerary you want and set a target price.</p>
             </article>
             <article className={styles.step}>
               <div className={styles.stepNum}>3</div>
-              <h3>Get the email</h3>
-              <p>When that fare softens to your number, a short note lands in your inbox.</p>
+              <h3>Get notified</h3>
+              <p>When the fare drops under your target, you get an email.</p>
             </article>
           </div>
         </section>
 
         <section className={styles.band}>
           <div>
-            <h2>Built for people who hate fare FOMO</h2>
-            <p>
-              Whether it’s a long-planned Tokyo week or a last-minute hop home, set the number once.
-              We’ll wait for the sky to settle — then nudge you.
-            </p>
+            <h2>Ready to track a fare?</h2>
+            <p>Pick a route and set a number. We’ll email you when it drops.</p>
           </div>
           <Link className="btn btn-primary" to="/search">
             {user ? 'Search another flight' : 'Search a route'}
@@ -157,7 +149,7 @@ export function LandingPage() {
 
         <footer className={styles.footer}>
           <span>FareWatch</span>
-          <span>Watch less. Fly smarter.</span>
+          <span>MIT</span>
         </footer>
       </div>
     </div>

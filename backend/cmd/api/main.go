@@ -31,7 +31,7 @@ func main() {
 	cfg := config.Load()
 
 	if cfg.IsProduction() && cfg.JWTSecret == config.DefaultJWTSecret {
-		log.Fatal("refusing to start in production with the default JWT_SECRET — set a strong secret")
+		log.Fatal("JWT_SECRET must be set in production")
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -70,7 +70,7 @@ func main() {
 
 	corsOrigins := []string{cfg.FrontendOrigin}
 	if !cfg.IsProduction() {
-		// Convenience origins for local dev only — never trust localhost in prod.
+		// localhost origins for local UI only
 		corsOrigins = append(corsOrigins, "http://localhost:5173", "http://localhost:3000", "http://localhost")
 	}
 

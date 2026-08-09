@@ -7,7 +7,7 @@ type Props = {
   action?: ReactNode;
 };
 
-export function LoadingState({ title = 'Scanning fares', message = 'Polling airline boards…' }: Partial<Props>) {
+export function LoadingState({ title = 'Loading', message = 'Please wait…' }: Partial<Props>) {
   return (
     <div className={styles.state} role="status">
       <div className={styles.bars} aria-hidden>
@@ -22,7 +22,7 @@ export function LoadingState({ title = 'Scanning fares', message = 'Polling airl
 export function EmptyState({ title, message, action }: Props) {
   return (
     <div className={styles.state}>
-      <div className={styles.mark}>—</div>
+      <div className={styles.mark}>-</div>
       <div className={styles.title}>{title}</div>
       <p className={styles.copy}>{message}</p>
       {action}

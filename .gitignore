@@ -9,6 +9,15 @@ backend/bin/
 .env
 .env.local
 deploy/k8s/secret.yaml
+deploy/k8s/generated/
+
+# terraform
+deploy/terraform/.terraform/
+deploy/terraform/*.tfstate
+deploy/terraform/*.tfstate.*
+deploy/terraform/.terraform.lock.hcl
+deploy/terraform/tfplan
+deploy/terraform/terraform.tfvars
 
 # ide / os
 .DS_Store

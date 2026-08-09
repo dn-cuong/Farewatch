@@ -1,5 +1,4 @@
 :root {
-  /* Organic / Natural — forest floor, clay, rice paper */
   --fw-background: #fdfcf8;
   --fw-foreground: #2c2c24;
   --fw-primary: #5d7052;
@@ -18,12 +17,10 @@
   --fw-up: #a85448;
   --fw-flat: #78786c;
 
-  /* Type */
   --fw-font-display: "Fraunces", Georgia, serif;
   --fw-font-body: "Nunito", system-ui, sans-serif;
   --fw-font-mono: "Nunito", system-ui, sans-serif;
 
-  /* Type scale ~1.25 */
   --fw-text-xs: 0.8rem;
   --fw-text-sm: 0.9rem;
   --fw-text-md: 1rem;
@@ -32,7 +29,6 @@
   --fw-text-2xl: 1.953rem;
   --fw-text-3xl: clamp(2.4rem, 5vw, 3.4rem);
 
-  /* Spacing */
   --fw-space-1: 0.25rem;
   --fw-space-2: 0.5rem;
   --fw-space-3: 0.75rem;
@@ -43,7 +39,6 @@
   --fw-space-8: 4rem;
   --fw-space-9: 6rem;
 
-  /* Shape */
   --fw-radius: 1.5rem;
   --fw-radius-lg: 2rem;
   --fw-radius-pill: 999px;
@@ -51,18 +46,15 @@
   --fw-blob-b: 30% 70% 70% 30% / 30% 30% 70% 70%;
   --fw-blob-c: 40% 60% 55% 45% / 55% 40% 60% 45%;
 
-  /* Shadows — tinted, never pure black */
   --fw-shadow-soft: 0 4px 20px -2px rgba(93, 112, 82, 0.15);
   --fw-shadow-float: 0 10px 40px -10px rgba(193, 140, 93, 0.2);
   --fw-shadow-lift: 0 20px 40px -10px rgba(93, 112, 82, 0.15);
   --fw-shadow-btn: 0 4px 20px -2px rgba(93, 112, 82, 0.15);
   --fw-shadow-btn-hover: 0 6px 24px -4px rgba(93, 112, 82, 0.25);
 
-  /* Layout — full-bleed with modest gutters */
   --fw-max: 100%;
   --fw-gutter: clamp(1rem, 2.5vw, 2rem);
 
-  /* Motion */
   --fw-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --fw-duration: 300ms;
   --fw-duration-slow: 500ms;

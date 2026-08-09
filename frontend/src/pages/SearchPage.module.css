@@ -15,12 +15,12 @@
   font-size: 0.78rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--fw-muted-foreground);
 }
 
 .hero h1 {
   margin: 0 0 0.75rem;
-  font-family: var(--font-display);
+  font-family: var(--fw-font-display);
   font-size: clamp(1.85rem, 3.2vw, 2.6rem);
   line-height: 1.15;
   letter-spacing: -0.02em;
@@ -29,13 +29,13 @@
 .lead {
   margin: 0;
   max-width: 34ch;
-  color: var(--muted);
+  color: var(--fw-muted-foreground);
   line-height: 1.55;
 }
 
 .search {
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--fw-card) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fw-border) 80%, transparent);
   border-radius: 18px;
   padding: 1.15rem 1.25rem 1.25rem;
   backdrop-filter: blur(10px);
@@ -168,9 +168,9 @@
   justify-self: center;
   margin-bottom: 0.15rem;
   border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
+  border: 1px solid var(--fw-border);
+  background: var(--fw-card);
+  color: var(--fw-foreground);
   font-size: 1rem;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
@@ -178,7 +178,7 @@
 
 .swap:hover {
   transform: rotate(180deg);
-  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  background: color-mix(in srgb, var(--fw-primary) 12%, var(--fw-card));
 }
 
 .returnDisabled input {
@@ -193,13 +193,13 @@
   gap: 1rem;
   margin-top: 1rem;
   padding-top: 0.85rem;
-  border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--fw-border) 70%, transparent);
 }
 
 .searchNote {
   margin: 0;
   font-size: 0.88rem;
-  color: var(--muted);
+  color: var(--fw-muted-foreground);
 }
 
 .navActions {
@@ -209,7 +209,7 @@
 .error,
 .empty {
   margin: 0 0 1rem;
-  color: var(--muted);
+  color: var(--fw-muted-foreground);
 }
 
 .error {
@@ -223,15 +223,15 @@
 }
 
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--fw-card);
+  border: 1px solid var(--fw-border);
   border-radius: 16px;
   padding: 1.15rem 1.25rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .card:hover {
-  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  border-color: color-mix(in srgb, var(--fw-primary) 45%, var(--fw-border));
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
 }
 
@@ -254,7 +254,7 @@
   font-size: 0.68rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--fw-muted-foreground, var(--muted));
+  color: var(--fw-muted-foreground, var(--fw-muted-foreground));
   background: color-mix(in srgb, var(--fw-muted, #eee) 70%, transparent);
   border-radius: var(--fw-radius-pill, 999px);
   padding: 0.15rem 0.55rem;
@@ -268,7 +268,7 @@
 
 .cities {
   margin-top: 0.2rem;
-  color: var(--muted);
+  color: var(--fw-muted-foreground);
   font-size: 0.9rem;
 }
 
@@ -277,7 +277,7 @@
 }
 
 .price {
-  font-family: var(--font-display);
+  font-family: var(--fw-font-display);
   font-size: 1.55rem;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -286,7 +286,7 @@
 .priceNote {
   margin-top: 0.2rem;
   font-size: 0.78rem;
-  color: var(--muted);
+  color: var(--fw-muted-foreground);
   text-transform: lowercase;
 }
 
@@ -296,8 +296,8 @@
   gap: 0.75rem;
   align-items: center;
   padding: 0.85rem 0;
-  border-top: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--fw-border) 65%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--fw-border) 65%, transparent);
 }
 
 .timeCol {
@@ -315,7 +315,7 @@
 }
 
 .timeCol span {
-  color: var(--muted);
+  color: var(--fw-muted-foreground);
   font-size: 0.85rem;
 }
 
@@ -325,7 +325,7 @@
   justify-items: center;
   text-align: center;
   font-size: 0.82rem;
-  color: var(--muted);
+  color: var(--fw-muted-foreground);
 }
 
 .timeLine {
@@ -334,7 +334,7 @@
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in srgb, var(--accent) 55%, var(--border)),
+    color-mix(in srgb, var(--fw-primary) 55%, var(--fw-border)),
     transparent
   );
   position: relative;
@@ -348,7 +348,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--fw-primary);
   transform: translateY(-50%);
 }
 
@@ -366,7 +366,7 @@
 
 .details summary {
   cursor: pointer;
-  color: var(--muted);
+  color: var(--fw-muted-foreground);
   font-size: 0.88rem;
   user-select: none;
 }
@@ -380,8 +380,8 @@
 .segment {
   padding: 0.65rem 0.75rem;
   border-radius: 10px;
-  background: color-mix(in srgb, var(--bg) 55%, transparent);
-  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--fw-background) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fw-border) 70%, transparent);
 }
 
 .segHead {
@@ -394,13 +394,13 @@
 .segTimes {
   margin-top: 0.25rem;
   font-size: 0.82rem;
-  color: var(--muted);
+  color: var(--fw-muted-foreground);
 }
 
 .layover {
   margin-top: 0.45rem;
   font-size: 0.8rem;
-  color: var(--accent);
+  color: var(--fw-primary);
 }
 
 .cardActions {
@@ -413,55 +413,66 @@
 .modalBackdrop {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 80;
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(4px);
+  background: color-mix(in srgb, var(--fw-foreground) 42%, transparent);
+  backdrop-filter: blur(8px);
+  animation: modalIn 160ms var(--fw-ease);
 }
 
 .modal {
   position: relative;
-  width: min(640px, 100%);
-  max-height: min(86vh, 760px);
+  width: min(34rem, 100%);
+  max-height: min(86vh, 40rem);
   overflow: auto;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 1.35rem 1.4rem 1.5rem;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+  background: var(--fw-card);
+  border: 1px solid var(--fw-border);
+  border-radius: var(--fw-radius);
+  padding: 1.5rem 1.5rem 1.35rem;
+  box-shadow: var(--fw-shadow-lift);
+  color: var(--fw-foreground);
 }
 
 .close {
   position: absolute;
-  top: 0.75rem;
-  right: 0.85rem;
-  width: 2rem;
-  height: 2rem;
-  border: 0;
+  top: 0.85rem;
+  right: 0.9rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--fw-border);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bg) 80%, transparent);
-  color: var(--text);
-  font-size: 1.25rem;
+  background: color-mix(in srgb, var(--fw-background) 88%, white);
+  color: var(--fw-foreground);
+  font-size: 1.35rem;
   line-height: 1;
   cursor: pointer;
+  transition: background var(--fw-duration) var(--fw-ease), border-color var(--fw-duration) var(--fw-ease);
+}
+
+.close:hover {
+  background: var(--fw-muted);
+  border-color: color-mix(in srgb, var(--fw-primary) 30%, var(--fw-border));
 }
 
 .modal h2 {
   margin: 0 0 0.35rem;
-  font-family: var(--font-display);
+  padding-right: 2.5rem;
+  font-family: var(--fw-font-display);
   font-size: 1.45rem;
+  line-height: 1.2;
 }
 
 .modalRoute {
-  margin: 0 0 1.1rem;
-  color: var(--muted);
+  margin: 0 0 1.15rem;
+  color: var(--fw-muted-foreground);
+  line-height: 1.5;
 }
 
 .modalError {
   margin: 0 0 0.85rem;
-  color: #b42318;
+  color: var(--fw-destructive);
   font-size: 0.9rem;
 }
 
@@ -477,8 +488,8 @@
   align-content: start;
   padding: 1rem;
   border-radius: 14px;
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg) 40%, transparent);
+  border: 1px solid var(--fw-border);
+  background: color-mix(in srgb, var(--fw-background) 40%, transparent);
 }
 
 .choice h3 {
@@ -489,13 +500,13 @@
 .choice p {
   margin: 0;
   font-size: 0.88rem;
-  color: var(--muted);
+  color: var(--fw-muted-foreground);
   line-height: 1.45;
 }
 
 .choice label {
   font-size: 0.82rem;
-  color: var(--muted);
+  color: var(--fw-muted-foreground);
 }
 
 .choice input {
@@ -506,7 +517,7 @@
   appearance: none;
   border: 0;
   background: transparent;
-  color: var(--accent);
+  color: var(--fw-primary);
   font: inherit;
   font-size: 0.88rem;
   text-align: left;
@@ -521,48 +532,140 @@
 
 .success p {
   margin: 0;
-  color: var(--muted);
+  color: var(--fw-muted-foreground);
+}
+
+.bookingMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.85rem;
+  margin: 0 0 1.1rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--fw-muted) 70%, transparent);
+  color: var(--fw-muted-foreground);
+  font-size: 0.86rem;
+}
+
+.bookingMeta strong {
+  color: var(--fw-foreground);
+  font-weight: 700;
 }
 
 .bookingList {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.5rem;
 }
 
 .bookingItem {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 1rem;
-  padding: 0.85rem 0.95rem;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--bg) 35%, transparent);
+  gap: 0.85rem 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.95rem;
+  border: 1px solid var(--fw-border);
+  background: color-mix(in srgb, var(--fw-background) 70%, white);
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color var(--fw-duration) var(--fw-ease),
+    background var(--fw-duration) var(--fw-ease),
+    transform 140ms var(--fw-ease);
 }
 
 .bookingItem:hover {
-  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
-  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--fw-primary) 45%, var(--fw-border));
+  background: color-mix(in srgb, var(--fw-primary) 8%, var(--fw-card));
+  transform: translateY(-1px);
+}
+
+.bookingItem:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--fw-primary) 45%, transparent);
+  outline-offset: 2px;
 }
 
 .bookingItem strong {
   display: block;
+  font-size: 0.98rem;
+  line-height: 1.25;
 }
 
 .bookingItem span {
   display: block;
-  margin-top: 0.15rem;
+  margin-top: 0.2rem;
   font-size: 0.8rem;
-  color: var(--muted);
-  text-transform: capitalize;
+  color: var(--fw-muted-foreground);
+}
+
+.bookingType {
+  display: inline-block;
+  margin-right: 0.35rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fw-primary) 12%, transparent);
+  color: var(--fw-primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .bookingPrice {
-  font-weight: 650;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
+  color: var(--fw-primary);
+}
+
+.bookingPrice svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.bookingLoading,
+.bookingEmpty {
+  margin: 0;
+  padding: 1.4rem 1rem;
+  border-radius: 0.95rem;
+  border: 1px dashed var(--fw-border);
+  color: var(--fw-muted-foreground);
+  text-align: center;
+  font-size: 0.92rem;
+}
+
+.bookingFoot {
+  margin: 1rem 0 0;
+  font-size: 0.78rem;
+  color: var(--fw-muted-foreground);
+  line-height: 1.45;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modalBackdrop {
+    animation: none;
+  }
+
+  .bookingItem:hover {
+    transform: none;
+  }
 }
 
 @media (max-width: 980px) {

@@ -44,7 +44,7 @@ type Scanner struct {
 
 // ErrScanCooldown is returned when a scan is requested too soon after the
 // previous one finished (or one is already in flight).
-var ErrScanCooldown = errors.New("a scan is already running or just finished — try again shortly")
+var ErrScanCooldown = errors.New("a scan is already running or just finished - try again shortly")
 
 func New(cfg config.Config, st *store.Store, c *cache.Cache, mailer *alerts.Mailer) *Scanner {
 	ignav := airlines.NewIgnav(cfg.IgnavAPIKey)
@@ -206,9 +206,7 @@ func (s *Scanner) runProviders(ctx context.Context, routes []models.Route, stats
 				}
 				continue
 			}
-			// Never alert on synthetic data: simulator:* sources are a
-			// deterministic local fallback used when no live provider
-			// returned a normalizable fare, not a real market price.
+			// Skip simulator:* (local fallback, not a real market price).
 			if saved.Price < prev.Price && !strings.HasPrefix(saved.Source, "simulator:") {
 				n, err := s.maybeAlert(ctx, saved, prev.Price)
 				if err != nil {

@@ -105,13 +105,13 @@ export function PriceChart({ watch, onRemove, onToggleEmail, onUpdateTargetPrice
     return (
       <div className={`panel ${styles.panelOrganic}`}>
         <div className="panel-head">
-          <h2>Fare ticker</h2>
+          <h2>Price history</h2>
           <span>Select a watch</span>
         </div>
         <div className={styles.emptyPick}>
           <EmptyState
-            title="Pick a route"
-            message="Choose a watch on the left to open its price trail — like a stock chart for that flight."
+            title="No watch selected"
+            message="Pick a watch on the left to see its price history."
           />
         </div>
       </div>
@@ -199,7 +199,7 @@ export function PriceChart({ watch, onRemove, onToggleEmail, onUpdateTargetPrice
   async function submitTarget(e: FormEvent) {
     e.preventDefault();
     const value = Number(targetInput);
-    if (!onUpdateTargetPrice || !Number.isFinite(value) || value <= 0) return;
+    if (!watch || !onUpdateTargetPrice || !Number.isFinite(value) || value <= 0) return;
     await onUpdateTargetPrice(watch.id, Math.round(value * 100) / 100);
     setEditingTarget(false);
   }

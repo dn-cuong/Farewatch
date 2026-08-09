@@ -479,7 +479,7 @@ func NewSchema(
 					idToken := p.Args["idToken"].(string)
 					ident, err := authSvc.VerifyFirebaseToken(p.Context, idToken, firebaseProjectID)
 					if err != nil {
-						return nil, err
+						return nil, fmt.Errorf("firebase auth failed: %w", err)
 					}
 					hash, err := authSvc.HashPassword("firebase-managed-" + ident.UID)
 					if err != nil {
@@ -487,7 +487,7 @@ func NewSchema(
 					}
 					u, err := st.UpsertFirebaseUser(p.Context, ident.UID, ident.Email, ident.Name, hash)
 					if err != nil {
-						return nil, err
+						return nil, fmt.Errorf("could not link Google account: %w", err)
 					}
 					token, err := authSvc.IssueToken(u)
 					if err != nil {

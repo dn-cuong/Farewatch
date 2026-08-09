@@ -172,11 +172,13 @@ func (s *Store) UpsertFirebaseUser(ctx context.Context, firebaseUID, email, name
 		return nil, err
 	}
 
-	// Same email already registered with password — attach firebase uid.
+	// Same email already registered with password - attach firebase uid.
 	existing, err := s.GetUserByEmail(ctx, email)
 	if err == nil {
-		_, _ = s.pool.Exec(ctx, `UPDATE users SET firebase_uid = $1, name = COALESCE(NULLIF($2, ''), name) WHERE id = $3`,
-			firebaseUID, name, existing.ID)
+		if _, err := s.pool.Exec(ctx, `UPDATE users SET firebase_uid = $1, name = COALESCE(NULLIF($2, ''), name) WHERE id = $3`,
+			firebaseUID, name, existing.ID); err != nil {
+			return nil, err
+		}
 		existing.Name = name
 		return existing, nil
 	}

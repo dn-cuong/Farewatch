@@ -5,7 +5,18 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { fetchMe, getToken, logout as apiLogout, type User } from './api';
+import {
+  fetchMe,
+  getToken,
+  loginWithFirebase,
+  logout as apiLogout,
+  type User,
+} from './api';
+import {
+  firebaseEnabled,
+  getFirebaseIdToken,
+  signOutFirebase,
+} from './firebase';
 
 type AuthCtx = {
   user: User | null;
@@ -21,18 +32,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  async function exchangeFirebaseSession(): Promise<User | null> {
+    if (!firebaseEnabled()) return null;
+    const idToken = await getFirebaseIdToken();
+    if (!idToken) return null;
+    return loginWithFirebase(idToken);
+  }
+
   async function refresh() {
-    if (!getToken()) {
-      setUser(null);
-      return;
+    if (getToken()) {
+      try {
+        const me = await fetchMe();
+        setUser(me);
+        return;
+      } catch {
+        apiLogout();
+      }
     }
+
     try {
-      const me = await fetchMe();
-      setUser(me);
+      const u = await exchangeFirebaseSession();
+      setUser(u);
     } catch {
-      // Token is missing, expired, or rejected by the API — drop it so we
-      // stop sending a dead Bearer header on every subsequent request.
       apiLogout();
+      await signOutFirebase().catch(() => undefined);
       setUser(null);
     }
   }
@@ -50,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refresh,
         logout: () => {
           apiLogout();
+          void signOutFirebase();
           setUser(null);
         },
       }}

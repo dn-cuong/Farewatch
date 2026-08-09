@@ -1,8 +1,4 @@
-// Package ratelimit provides a small per-client token-bucket limiter for
-// public HTTP endpoints. FareWatch's /graphql endpoint allows unauthenticated
-// operations (searchFares, createEmailWatch) that fan out to 30+ upstream
-// providers per call, so it needs its own throttle independent of the
-// scanner's worker-pool rate limit.
+// Package ratelimit is a per-IP token bucket for the public /graphql endpoint.
 package ratelimit
 
 import (
@@ -90,7 +86,7 @@ func (l *Limiter) Middleware(next http.Handler) http.Handler {
 			w.Header().Set("Content-Type", "application/json")
 			w.Header().Set("Retry-After", "1")
 			w.WriteHeader(http.StatusTooManyRequests)
-			_, _ = w.Write([]byte(`{"errors":[{"message":"too many requests — slow down and try again"}]}`))
+			_, _ = w.Write([]byte(`{"errors":[{"message":"too many requests - slow down and try again"}]}`))
 			return
 		}
 		next.ServeHTTP(w, r)

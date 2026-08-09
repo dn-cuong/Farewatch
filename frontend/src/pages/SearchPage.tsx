@@ -21,13 +21,13 @@ type TripType = 'oneway' | 'roundtrip';
 
 function formatClock(iso: string) {
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
+  if (Number.isNaN(d.getTime())) return '-';
   return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
 
 function formatDay(iso: string) {
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
+  if (Number.isNaN(d.getTime())) return '-';
   return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
@@ -361,11 +361,10 @@ export function SearchPage() {
 
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>Live fares · multi-airline</p>
+            <p className={styles.eyebrow}>Search</p>
             <h1>{title}</h1>
             <p className={styles.lead}>
-              Choose one-way or round-trip, compare real itineraries, then track the exact flight you
-              care about — or jump out to book with an airline or Google Flights.
+              Compare one-way or round-trip options, then watch a flight or open a booking link.
             </p>
           </div>
 
@@ -397,8 +396,8 @@ export function SearchPage() {
               </div>
               <p className={styles.tripHint}>
                 {tripType === 'roundtrip'
-                  ? 'We’ll search fares that include a return date.'
-                  : 'We’ll search outbound-only fares.'}
+                  ? 'Includes a return date.'
+                  : 'Outbound only.'}
               </p>
             </div>
 
@@ -471,7 +470,7 @@ export function SearchPage() {
 
             <div className={styles.searchFooter}>
               <p className={styles.searchNote}>
-                {tripType === 'roundtrip' ? `Round-trip · return ${returnDate || '—'}` : 'One-way trip'}
+                {tripType === 'roundtrip' ? `Round-trip · return ${returnDate || '-'}` : 'One-way trip'}
               </p>
               <button className="btn btn-primary" type="submit" disabled={busy}>
                 {busy ? 'Searching…' : 'Search flights'}
@@ -546,7 +545,7 @@ export function SearchPage() {
                             <span>{formatDuration(seg.durationMinutes)}</span>
                           </div>
                           <div className={styles.segTimes}>
-                            {formatClock(seg.departAt)} – {formatClock(seg.arriveAt)}
+                            {formatClock(seg.departAt)} - {formatClock(seg.arriveAt)}
                             {seg.aircraft ? ` · ${seg.aircraft}` : ''}
                           </div>
                           {idx < offer.segments.length - 1 && (
@@ -654,6 +653,9 @@ export function SearchPage() {
               aria-modal="true"
               aria-labelledby="booking-title"
               onMouseDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') setBookingOffer(null);
+              }}
             >
               <button className={styles.close} type="button" aria-label="Close" onClick={() => setBookingOffer(null)}>
                 ×
@@ -662,11 +664,21 @@ export function SearchPage() {
               <h2 id="booking-title">
                 {bookingOffer.airline} {bookingOffer.flightNumber}
               </h2>
-              <p className={styles.modalRoute}>
-                FareWatch doesn’t sell tickets. These open the airline, an OTA, or Google Flights.
-              </p>
+              <div className={styles.bookingMeta}>
+                <span>
+                  <strong>
+                    {bookingOffer.origin} → {bookingOffer.destination}
+                  </strong>
+                </span>
+                <span>{formatDay(bookingOffer.departAt)}</span>
+                <span>{formatPrice(bookingOffer.price, bookingOffer.currency)}</span>
+                <span>{bookingOffer.stops === 0 ? 'Nonstop' : `${bookingOffer.stops} stop${bookingOffer.stops > 1 ? 's' : ''}`}</span>
+              </div>
               {bookingError && <p className={styles.modalError}>{bookingError}</p>}
-              {bookingBusy && <p className={styles.empty}>Finding checkout links…</p>}
+              {bookingBusy && <p className={styles.bookingLoading}>Finding checkout links…</p>}
+              {!bookingBusy && bookingLinks.length === 0 && (
+                <p className={styles.bookingEmpty}>No checkout links yet for this itinerary.</p>
+              )}
               <div className={styles.bookingList}>
                 {bookingLinks.map((link) => (
                   <a
@@ -677,18 +689,25 @@ export function SearchPage() {
                     rel="noreferrer"
                   >
                     <div>
-                      <strong>{link.providerName}</strong>
+                      <strong>{link.providerName || 'Open booking'}</strong>
                       <span>
-                        {link.providerType}
-                        {link.fareName ? ` · ${link.fareName}` : ''}
+                        {link.providerType ? <span className={styles.bookingType}>{link.providerType}</span> : null}
+                        {link.fareName || 'Continue on their site'}
                       </span>
                     </div>
                     <div className={styles.bookingPrice}>
-                      {link.price > 0 ? formatPrice(link.price, link.currency) : 'Open →'}
+                      {link.price > 0 ? formatPrice(link.price, link.currency) : 'Open'}
+                      <svg viewBox="0 0 16 16" aria-hidden="true">
+                        <path d="M4 12 12 4" />
+                        <path d="M6.5 4H12v5.5" />
+                      </svg>
                     </div>
                   </a>
                 ))}
               </div>
+              <p className={styles.bookingFoot}>
+                FareWatch doesn’t sell tickets. These open the airline, an OTA, or Google Flights in a new tab.
+              </p>
             </section>
           </div>
         )}

@@ -17,10 +17,8 @@ spec:
     spec:
       containers:
         - name: web
-          # Pin to an explicit, immutable tag per release (never :latest) so
-          # rollouts are reproducible and rollback actually rolls back.
-          image: farewatch/web:1.0.0
-          imagePullPolicy: IfNotPresent
+          image: __ECR_WEB_IMAGE__
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           readinessProbe:

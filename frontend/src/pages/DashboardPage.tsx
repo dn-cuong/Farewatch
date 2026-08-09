@@ -78,7 +78,7 @@ export function DashboardPage() {
       setStats(s);
       await refresh();
       setToast(
-        `Scan done · ${s.faresFound} offers · ${s.cacheHitRate.toFixed(0)}% Redis hits · ${s.airlinesQueried} airlines`,
+        `Scan finished · ${s.faresFound} offers · cache ${s.cacheHitRate.toFixed(0)}% · ${s.airlinesQueried} providers`,
       );
     } catch (err) {
       setToast(err instanceof Error ? err.message : 'Scan failed');
@@ -91,7 +91,7 @@ export function DashboardPage() {
     setBusyAction(`remove:${id}`);
     try {
       await removeWatch(id);
-      setToast('Removed from watchlist — emails stopped for that route.');
+      setToast('Removed from watchlist - emails stopped for that route.');
       if (selectedId === id) setSelectedId(null);
       await refresh();
     } catch (err) {
@@ -158,13 +158,12 @@ export function DashboardPage() {
         <section className="page-head">
           <h1>Hi, {user.name}</h1>
           <p>
-            Your watchlist works like a fare ticker: pick a route, scrub the price trail, mute email or
-            drop it from the board anytime.
+            Select a watch to see price history, toggle email alerts, or remove it.
           </p>
           {stats && (
             <p className={styles.scanLine}>
-              Last scan: {stats.faresFound} offers across {stats.airlinesQueried} airline APIs · Redis
-              hit rate {stats.cacheHitRate.toFixed(0)}% · {stats.durationMs}ms
+              Last scan: {stats.faresFound} offers · {stats.airlinesQueried} providers · cache{' '}
+              {stats.cacheHitRate.toFixed(0)}% · {stats.durationMs}ms
             </p>
           )}
         </section>
@@ -194,7 +193,7 @@ export function DashboardPage() {
               </div>
               <div className="panel-body">
                 <p className={styles.sideCopy}>
-                  Compare itineraries, then add the one you want on the ticker.
+                  Search for another flight and add it to your watchlist.
                 </p>
                 <Link className="btn btn-primary" to="/search">
                   Search flights

@@ -4,7 +4,7 @@ metadata:
   name: farewatch-scanner
   namespace: farewatch
 spec:
-  # Scheduled fare scans on EKS (UTC unless the cluster sets another timezone).
+  # Scheduled fare scans on EKS (UTC).
   schedule: "*/15 * * * *"
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 3
@@ -20,8 +20,8 @@ spec:
           restartPolicy: Never
           containers:
             - name: scanner
-              image: farewatch/api:latest
-              imagePullPolicy: IfNotPresent
+              image: __ECR_API_IMAGE__
+              imagePullPolicy: Always
               command: ["/app/scanner"]
               envFrom:
                 - configMapRef:

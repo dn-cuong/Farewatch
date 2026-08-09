@@ -1,14 +1,15 @@
-.PHONY: help up down scan logs tidy build api-dev web-dev test
+.PHONY: help up down scan logs tidy build api-dev web-dev test firebase-env
 
 help:
 	@echo "FareWatch targets:"
-	@echo "  make up        Start full stack (loads .env)"
-	@echo "  make down      Stop stack"
-	@echo "  make scan      Run one scanner job"
-	@echo "  make logs      Tail api + web logs"
-	@echo "  make build     Build Go binaries + frontend"
-	@echo "  make api-dev   Run API on host"
-	@echo "  make web-dev   Run Vite dev server"
+	@echo "  make up            Start full stack (loads .env)"
+	@echo "  make down          Stop stack"
+	@echo "  make scan          Run one scanner job"
+	@echo "  make logs          Tail api + web logs"
+	@echo "  make build         Build Go binaries + frontend"
+	@echo "  make api-dev       Run API on host"
+	@echo "  make web-dev       Run Vite dev server"
+	@echo "  make firebase-env  Prompt for Firebase Auth keys → .env"
 
 up:
 	set -a && . ./.env && set +a && docker-compose up --build -d
@@ -37,3 +38,6 @@ web-dev:
 
 test:
 	cd backend && go test ./...
+
+firebase-env:
+	./scripts/setup-firebase-env.sh

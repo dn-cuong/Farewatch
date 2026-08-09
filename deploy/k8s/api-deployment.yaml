@@ -17,10 +17,9 @@ spec:
     spec:
       containers:
         - name: api
-          # Pin to an explicit, immutable tag per release (never :latest) so
-          # rollouts are reproducible and rollback actually rolls back.
-          image: farewatch/api:1.0.0
-          imagePullPolicy: IfNotPresent
+          # Replaced by deploy/scripts/up.sh with the ECR image URL + immutable tag.
+          image: __ECR_API_IMAGE__
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:

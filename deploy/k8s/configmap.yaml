@@ -6,13 +6,14 @@ metadata:
 data:
   APP_ENV: "production"
   PORT: "8080"
-  FRONTEND_ORIGIN: "https://farewatch.example.com"
+  # Replaced by up.sh with http://<alb-dns> after Ingress is ready.
+  FRONTEND_ORIGIN: "__FRONTEND_ORIGIN__"
   WORKER_COUNT: "8"
   RATE_LIMIT_PER_SEC: "20"
   CACHE_TTL_SECONDS: "900"
   HTTP_RATE_LIMIT_PER_SEC: "5"
   HTTP_RATE_LIMIT_BURST: "15"
   FARE_RETENTION_DAYS: "90"
-  SMTP_HOST: "smtp.example.com"
-  SMTP_PORT: "587"
-  SMTP_FROM: "alerts@farewatch.app"
+  SMTP_HOST: "__SMTP_HOST__"
+  SMTP_PORT: "__SMTP_PORT__"
+  SMTP_FROM: "__SMTP_FROM__"
